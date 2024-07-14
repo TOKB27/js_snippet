@@ -10,6 +10,19 @@ const numbersB = [1, 2, 3, 4];
 const evens = numbersB.filter((num) => num % 2 === 0);
 console.log(evens); // [2, 4]
 
+// sort()
+// 配列の要素を並び替え
+const numbersC = [4, 2, 3, 1];
+numbersC.sort();
+console.log(numbersC); // [1, 2, 3, 4]
+
+// concat()
+// 2つ以上の配列を結合
+const array1 = [1, 2];
+const array2 = [3, 4];
+const combined = array1.concat(array2);
+console.log(combined); // [1, 2, 3, 4]
+
 // split()
 // 文字列を指定した区切り文字で分割し、配列を返す
 const strA = "Hello World";
