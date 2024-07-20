@@ -23,6 +23,18 @@ const array2 = [3, 4];
 const combined = array1.concat(array2);
 console.log(combined); // [1, 2, 3, 4]
 
+// find();
+// 配列内の条件を満たす最初の要素を返す
+const numbers_find = [1, 2, 3, 4];
+const found = numbers_find.find((num) => num > 2);
+console.log(found); // 3
+
+// every()
+// 配列のすべての要素が条件を満たすかどうかをチェック
+const numbers_every = [2, 4, 6];
+const allEven = numbers_every.every((num) => num % 2 === 0);
+console.log(allEven); // true
+
 // split()
 // 文字列を指定した区切り文字で分割し、配列を返す
 const strA = "Hello World";
