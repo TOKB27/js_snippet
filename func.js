@@ -1,3 +1,14 @@
+// 自作関数
+let add = 0;
+let a = 1;
+let b = 2;
+// 従来の関数
+add = function (a, b) {
+  return a + b + 100;
+};
+// アロー関数
+add = (a, b) => a + b + 100;
+
 // map()
 // 配列の各要素に対して関数を適用し、新しい配列を返す
 const numbersA = [1, 2, 3, 4];
