@@ -35,3 +35,8 @@ console.log(arr2);
 let obj1 = { a: 1, b: 2 };
 let obj2 = { ...obj1, c: 3 };
 console.log(obj2);
+
+// 三項演算子
+const flag = true;
+const text = flag ? "flagはtrueです" : "flagはfalseです";
+console.log(text);
