@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>jQuery 学習サンプル</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .box {
+      width: 100px;
+      height: 100px;
+      background-color: skyblue;
+      margin: 10px 0;
+      line-height: 100px;
+      text-align: center;
+    }
+    #toggleBox {
+      width: 200px;
+      height: 100px;
+      background: lightgreen;
+      display: none;
+      margin-top: 10px;
+      text-align: center;
+      line-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h1>jQuery 学習ページ</h1>
+
+  <h2>1. クリックイベント</h2>
+  <button id="btnClick">クリックして文字変更</button>
+  <p id="message">ここにメッセージが表示されます</p>
+
+  <h2>2. DOM操作</h2>
+  <button id="btnAdd">リストに項目を追加</button>
+  <ul id="itemList">
+    <li>項目1</li>
+    <li>項目2</li>
+  </ul>
+
+  <h2>3. アニメーション</h2>
+  <div class="box" id="animateBox">BOX</div>
+  <button id="btnAnimate">アニメーション開始</button>
+
+  <h2>4. 表示/非表示</h2>
+  <button id="btnToggle">表示切替</button>
+  <div id="toggleBox">表示/非表示されるBOX</div>
+
+  <script>
+    $(document).ready(function() {
+      // 1. クリックイベント
+      $("#btnClick").on("click", function() {
+        const message = $("#message");
+        if (message.text() === "ここにメッセージが表示されます") {
+          message.text("ボタンがクリックされました！");
+        } else {
+          message.text("ここにメッセージが表示されます");
+        }
+      });
+
+      // 2. DOM操作
+      $("#btnAdd").on("click", function() {
+        let count = $("#itemList li").length + 1;
+        $("#itemList").append("<li>項目" + count + "</li>");
+      });
+
+      // 3. アニメーション
+      $("#btnAnimate").on("click", function() {
+        $("#animateBox").animate({
+          width: "200px",
+          height: "200px",
+          opacity: 0.5
+        }, 1000).animate({
+          width: "100px",
+          height: "100px",
+          opacity: 1
+        }, 1000);
+      });
+
+      // 4. 表示/非表示
+      $("#btnToggle").on("click", function() {
+        $("#toggleBox").fadeToggle(500);
+      });
+    });
+  </script>
+</body>
+</html>
