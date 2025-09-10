@@ -1,0 +1,29 @@
+{
+  "companies": [
+    {
+      "name": "Acme Inc.",
+      "location": "Tokyo",
+      "departments": [
+        { "name": "Sales", "employees": ["Alice", "Bob", "Charlie"] },
+        { "name": "Engineering", "employees": ["Dave", "Eve"] },
+        { "name": "HR", "employees": ["Fiona"] }
+      ]
+    },
+    {
+      "name": "Globex Corp.",
+      "location": "Osaka",
+      "departments": [
+        { "name": "Engineering", "employees": ["Grace", "Heidi", "Ivan"] },
+        { "name": "Finance", "employees": ["Judy"] }
+      ]
+    },
+    {
+      "name": "Initech",
+      "location": "Nagoya",
+      "departments": [
+        { "name": "Sales", "employees": ["Ken"] },
+        { "name": "Support", "employees": ["Liam", "Mia"] }
+      ]
+    }
+  ]
+}
