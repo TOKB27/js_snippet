@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>企業・部署・従業員ビューア（列選択＋チェックボックス式フィルタ）</title>
+  <title>企業・部署・従業員ビューア（列選択＋チェックボックス式フィルタ＋可視化）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
           integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -11,7 +11,7 @@
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; margin: 24px; }
     h1 { font-size: 20px; margin-bottom: 8px; }
     .muted { color: var(--muted); font-size: 12px; }
-    .toolbar { display: flex; gap: 8px; margin-top: 8px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 8px; }
     .btn { padding: 6px 10px; border: 1px solid #bbb; background: var(--bg); border-radius: 8px; cursor: pointer; }
     .btn:hover { background: #f5f5f5; }
     table { border-collapse: collapse; width: 100%; margin-top: 12px; }
@@ -40,7 +40,11 @@
     .modal header { padding: 14px 16px; font-weight: bold; border-bottom: 1px solid #eee; }
     .modal .content { padding: 16px; overflow: auto; }
     .modal footer { padding: 12px 16px; border-top: 1px solid #eee; text-align: right; display: flex; gap: 8px; justify-content: flex-end; }
-    .chip { display: inline-block; padding: 4px 8px; border-radius: 9999px; border: 1px solid #ddd; margin: 2px 4px 2px 0; }
+
+    /* チップ */
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 9999px; border: 1px solid #ddd; margin: 2px 4px 2px 0; font-size: 12px; background:#fafafa; }
+    .chip .chip-x { border:none; background:transparent; cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
+    .chip .chip-x:hover { text-decoration: underline; }
 
     /* 列選択モーダル内 */
     .col-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
@@ -48,15 +52,26 @@
 
     /* ステータステキスト */
     .badge { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 9999px; font-size: 12px; margin-left: 8px; background: #fafafa; }
+
+    /* フィルタ状態エリア */
+    .filters-wrap { display:flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+    .filters-title { font-size: 12px; color: var(--muted); margin-right: 2px; }
+    .filters-empty { font-size:12px; color: var(--muted); }
   </style>
 </head>
 <body>
   <h1>企業 × 部署 × 従業員（3階層JSON）</h1>
-  <p class="muted">①「項目選択」で表示する列を選ぶ → ② ヘッダーをクリックしてチェックボックス式フィルタ → ③ 部署クリックで従業員モーダル。</p>
+  <p class="muted">①「項目選択」で表示する列を選ぶ → ② ヘッダーをクリックしてチェックボックス式フィルタ → ③ 部署クリックで従業員モーダル。<br>※ フィルタ状態は下のチップで常時表示・ワンクリック解除できます。</p>
 
   <div class="toolbar">
     <button class="btn" id="openColPicker">項目選択</button>
     <span class="muted">現在の列: <span id="visibleColsStatus" class="badge">読み込み中...</span></span>
+    <!-- フィルタ状態の常時可視化 -->
+    <div id="activeFilters" class="filters-wrap" aria-live="polite">
+      <span class="filters-title">フィルタ:</span>
+      <span class="filters-empty" id="filtersEmpty">未適用</span>
+      <!-- 個別フィルタのチップがここに入る -->
+    </div>
   </div>
 
   <table id="companyTable" aria-label="companies table">
@@ -118,9 +133,7 @@
     // ====== アプリ状態 ======
     const AppState = {
       companies: [],
-      // 表示列（key配列）。初期は全列表示
       visibleCols: COLUMNS.map(c => c.key),
-      // 列ごとのフィルタ（配列 or null）。非表示化した列のフィルタは適用しない・自動リセット
       filters: { name: null, location: null, departments: null },
       lastHeader: null
     };
@@ -147,11 +160,12 @@
       });
 
       // フィルタ操作
-      $('#applyFilter').on('click', applyCurrentFilter);
+      $('#applyFilter').on('click', () => { applyCurrentFilter(); });
       $('#clearFilter').on('click', () => { clearCurrentFilter(); });
       $('#closeFilter').on('click', hideFilterPanel);
       $('#checkAll').on('click', () => $('#filterOptions input[type="checkbox"]').prop('checked', true));
       $('#uncheckAll').on('click', () => $('#filterOptions input[type="checkbox"]').prop('checked', false));
+
       // パネル外クリックで閉じる
       $(document).on('click', function (e) {
         const $panel = $('#filterPanel');
@@ -168,11 +182,30 @@
       $('#selectAllCols').on('click', () => $('#colPickerList input[type="checkbox"]').prop('checked', true));
       $('#unselectAllCols').on('click', () => $('#colPickerList input[type="checkbox"]').prop('checked', false));
       $('#applyCols').on('click', applyColumnSelection);
+
+      // --- 可視化チップからフィルタをワンクリック解除 ---
+      $(document).on('click', '.chip-x[data-clear-filter]', function (e) {
+        e.stopPropagation();
+        const col = $(this).data('clear-filter');
+        AppState.filters[col] = null;
+        renderTableHead();
+        renderFilterStatus();
+        renderTableBody();
+      });
+
+      // キーボード操作（Enter/Space）でのフィルタ解除対応
+      $(document).on('keydown', '.chip-x[data-clear-filter]', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          $(this).trigger('click');
+        }
+      });
     });
 
     // ====== 全体レンダリング ======
     function renderAll() {
       renderTableHead();
+      renderFilterStatus();
       renderTableBody();
       updateVisibleColsStatus();
     }
@@ -184,10 +217,22 @@
       AppState.visibleCols.forEach(key => {
         const meta = COLUMNS.find(c => c.key === key);
         if (!meta) return;
+
+        const activeCount = Array.isArray(AppState.filters[key]) ? AppState.filters[key].length : 0;
         const $th = $('<th>').attr('data-col', meta.key)
           .attr('tabindex', meta.filterable ? 0 : -1)
-          .attr('aria-haspopup', meta.filterable ? 'dialog' : 'false')
-          .text(meta.title + (meta.filterable ? '（クリックでフィルタ）' : ''));
+          .attr('aria-haspopup', meta.filterable ? 'dialog' : 'false');
+
+        const label = meta.title + (meta.filterable ? '（クリックでフィルタ）' : '');
+        const $labelSpan = $('<span>').text(label);
+        $th.append($labelSpan);
+
+        if (activeCount > 0) {
+          // バッジでアクティブ件数を可視化
+          $th.append($('<span class="badge">').text(activeCount));
+          $th.attr('aria-label', `${meta.title} に ${activeCount} 件のフィルタが適用中`);
+        }
+
         $tr.append($th);
       });
       $thead.append($tr);
@@ -228,7 +273,6 @@
       const activeCols = new Set(AppState.visibleCols);
       const f = AppState.filters;
 
-      // 非表示列のフィルタは無視
       if (activeCols.has('name') && Array.isArray(f.name) && f.name.length > 0 && !f.name.includes(c.name)) return false;
       if (activeCols.has('location') && Array.isArray(f.location) && f.location.length > 0 && !f.location.includes(c.location)) return false;
       if (activeCols.has('departments') && Array.isArray(f.departments) && f.departments.length > 0) {
@@ -238,6 +282,42 @@
       return true;
     }
 
+    // ====== フィルタ状態の常時可視化 ======
+    function renderFilterStatus() {
+      const $wrap = $('#activeFilters');
+      // 既存の動的チップをクリア（タイトルと「未適用」は残すので後で再制御）
+      $wrap.find('.chip').remove();
+
+      const active = [];
+      AppState.visibleCols.forEach(key => {
+        const meta = COLUMNS.find(c => c.key === key);
+        const vals = AppState.filters[key];
+        if (Array.isArray(vals) && vals.length > 0) {
+          active.push({ key, title: meta?.title ?? key, vals });
+        }
+      });
+
+      if (active.length === 0) {
+        $('#filtersEmpty').show().text('未適用');
+        return;
+      } else {
+        $('#filtersEmpty').hide();
+      }
+
+      active.forEach(({ key, title, vals }) => {
+        const text = `${title}: ${vals.join(' / ')}`;
+        const $chip = $('<span class="chip">')
+          .append($('<span>').text(text))
+          .append(
+            $('<button class="chip-x" type="button" title="このフィルタを解除" aria-label="このフィルタを解除">')
+              .attr('data-clear-filter', key)
+              .text('✕')
+  );
+
+        $wrap.append($chip);
+      });
+    }
+
     // ====== フィルタパネル ======
     function openFilterPanel($th, colKey, title) {
       const $panel = $('#filterPanel');
@@ -245,8 +325,11 @@
 
       $('#filterTitle').text(`フィルタ：${title}`);
 
-      // 候補値を抽出
-      getUniqueValuesForColumn(colKey).forEach(v => {
+      // --- 候補値を抽出して昇順ソート ---
+      const values = getUniqueValuesForColumn(colKey).sort((a, b) => a.localeCompare(b, 'ja'));
+
+      // --- 候補を描画 ---
+      values.forEach(v => {
         const id = `opt-${colKey}-${encodeURIComponent(v)}`;
         const $row = $('<label class="filter-option">')
           .append($('<input type="checkbox">').attr({ id, value: v, name: 'filterOption' }))
@@ -270,6 +353,7 @@
       setTimeout(() => $opts.find('input[type="checkbox"]').first().trigger('focus'), 0);
     }
 
+
     function hideFilterPanel() { $('#filterPanel').hide().attr('aria-modal', 'false'); }
 
     function getUniqueValuesForColumn(colKey) {
@@ -287,13 +371,17 @@
       const selected = $('#filterOptions input[type="checkbox"]:checked').map((_, el) => $(el).val()).get();
       AppState.filters[AppState.lastHeader] = selected.length > 0 ? selected : null;
       hideFilterPanel();
-      renderTableBody(); // データのみ再描画
+      renderTableHead();    // バッジ更新
+      renderFilterStatus(); // チップ更新
+      renderTableBody();    // データ再描画
     }
 
     function clearCurrentFilter() {
       if (!AppState.lastHeader) return;
       AppState.filters[AppState.lastHeader] = null;
       hideFilterPanel();
+      renderTableHead();
+      renderFilterStatus();
       renderTableBody();
     }
 
@@ -329,7 +417,6 @@
 
     function applyColumnSelection() {
       const selected = $('#colPickerList input[type="checkbox"]:checked').map((_, el) => $(el).val()).get();
-      // 最低1列は必要
       if (selected.length === 0) {
         alert('少なくとも1つの列を選択してください。');
         return;
@@ -343,7 +430,7 @@
       }
 
       closeAllModals();
-      renderAll();
+      renderAll(); // ヘッダー/チップ/本文/列ステータスを一括更新
     }
 
     // ====== 共通：モーダル制御・UI ======
