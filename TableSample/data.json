@@ -1,28 +1,48 @@
 {
-  "companies": [
+  "versions": [
     {
-      "name": "Acme Inc.",
-      "location": "Tokyo",
-      "departments": [
-        { "name": "Sales", "employees": ["Alice", "Bob", "Charlie"] },
-        { "name": "Engineering", "employees": ["Dave", "Eve"] },
-        { "name": "HR", "employees": ["Fiona"] }
+      "id": "v1.0",
+      "label": "v1.0 (初期)",
+      "timestamp": "2025-09-01T00:00:00+09:00",
+      "companies": [
+        {
+          "name": "Acme Inc.",
+          "location": "Tokyo",
+          "departments": [
+            { "name": "Sales", "employees": ["Alice", "Bob"] },
+            { "name": "Engineering", "employees": ["Dave", "Eve"] }
+          ]
+        },
+        {
+          "name": "Globex Corp.",
+          "location": "Osaka",
+          "departments": [
+            { "name": "Engineering", "employees": ["Grace", "Heidi"] }
+          ]
+        }
       ]
     },
     {
-      "name": "Globex Corp.",
-      "location": "Osaka",
-      "departments": [
-        { "name": "Engineering", "employees": ["Grace", "Heidi", "Ivan"] },
-        { "name": "Finance", "employees": ["Judy"] }
-      ]
-    },
-    {
-      "name": "Initech",
-      "location": "Nagoya",
-      "departments": [
-        { "name": "Sales", "employees": ["Ken"] },
-        { "name": "Support", "employees": ["Liam", "Mia"] }
+      "id": "v1.1",
+      "label": "v1.1",
+      "timestamp": "2025-10-01T00:00:00+09:00",
+      "companies": [
+        {
+          "name": "Acme Inc.",
+          "location": "Tokyo",
+          "departments": [
+            { "name": "Sales", "employees": ["Alice", "Bob", "Charlie"] },
+            { "name": "Engineering", "employees": ["Dave"] },
+            { "name": "HR", "employees": ["Fiona"] }
+          ]
+        },
+        {
+          "name": "Initech",
+          "location": "Nagoya",
+          "departments": [
+            { "name": "Support", "employees": ["Liam", "Mia"] }
+          ]
+        }
       ]
     }
   ]
