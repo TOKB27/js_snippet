@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>企業・部署・従業員ビューア（列選択＋チェックボックス式フィルタ＋可視化）</title>
+  <title>企業・部署・従業員ビューア（列選択＋フィルタ＋バージョン差分＋差分のみ表示）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
           integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
@@ -11,9 +11,11 @@
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; margin: 24px; }
     h1 { font-size: 20px; margin-bottom: 8px; }
     .muted { color: var(--muted); font-size: 12px; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 8px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
     .btn { padding: 6px 10px; border: 1px solid #bbb; background: var(--bg); border-radius: 8px; cursor: pointer; }
     .btn:hover { background: #f5f5f5; }
+    select, .inline { padding: 6px 8px; border: 1px solid #bbb; border-radius: 8px; background: var(--bg); }
+    .badge { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 9999px; font-size: 12px; margin-left: 8px; background: #fafafa; }
     table { border-collapse: collapse; width: 100%; margin-top: 12px; }
     th, td { border: 1px solid var(--bd); padding: 10px; vertical-align: top; }
     th { background: #f7f7f7; cursor: pointer; position: relative; white-space: nowrap; }
@@ -33,45 +35,50 @@
     .filter-option { display: flex; align-items: center; gap: 6px; margin: 4px 2px; }
     .filter-actions { margin-top: 8px; text-align: right; display: flex; justify-content: flex-end; gap: 8px; }
 
-    /* 汎用モーダル（列選択／従業員に共用バックドロップ） */
+    /* モーダル共通 */
     .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10; }
     .modal { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--bg);
-      width: min(560px, 92vw); max-height: 72vh; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.22); z-index: 30; display: none; }
+      width: min(780px, 94vw); max-height: 80vh; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.22); z-index: 30; display: none; }
     .modal header { padding: 14px 16px; font-weight: bold; border-bottom: 1px solid #eee; }
     .modal .content { padding: 16px; overflow: auto; }
     .modal footer { padding: 12px 16px; border-top: 1px solid #eee; text-align: right; display: flex; gap: 8px; justify-content: flex-end; }
+    .chip { display: inline-block; padding: 4px 8px; border-radius: 9999px; border: 1px solid #ddd; margin: 2px 4px 2px 0; }
 
-    /* チップ */
-    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 9999px; border: 1px solid #ddd; margin: 2px 4px 2px 0; font-size: 12px; background:#fafafa; }
-    .chip .chip-x { border:none; background:transparent; cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
-    .chip .chip-x:hover { text-decoration: underline; }
-
-    /* 列選択モーダル内 */
+    /* 列選択モーダル */
     .col-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
     .col-item { display: flex; align-items: center; gap: 8px; }
 
-    /* ステータステキスト */
-    .badge { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 9999px; font-size: 12px; margin-left: 8px; background: #fafafa; }
-
-    /* フィルタ状態エリア */
-    .filters-wrap { display:flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-    .filters-title { font-size: 12px; color: var(--muted); margin-right: 2px; }
-    .filters-empty { font-size:12px; color: var(--muted); }
+    /* 差分ビュー用（ダイアログは以前のまま） */
+    .diff-list { display: grid; gap: 6px; }
+    .diff-block { border: 1px solid #eee; border-radius: 8px; padding: 10px; }
+    .diff-title { font-weight: 600; margin-bottom: 6px; }
+    .add { color: #0a7; } .del { color: #d33; } .chg { color: #17a; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   </style>
 </head>
 <body>
   <h1>企業 × 部署 × 従業員（3階層JSON）</h1>
-  <p class="muted">①「項目選択」で表示する列を選ぶ → ② ヘッダーをクリックしてチェックボックス式フィルタ → ③ 部署クリックで従業員モーダル。<br>※ フィルタ状態は下のチップで常時表示・ワンクリック解除できます。</p>
+  <p class="muted">①項目選択 → ②ヘッダーフィルタ（チェックボックス） → ③部署クリックで従業員 → ④バージョン選択／差分比較。<br>
+    ★「差分のみ表示」をONにすると、選択した比較対象との**差分がある会社のみ**テーブルに表示します。</p>
 
   <div class="toolbar">
     <button class="btn" id="openColPicker">項目選択</button>
     <span class="muted">現在の列: <span id="visibleColsStatus" class="badge">読み込み中...</span></span>
-    <!-- フィルタ状態の常時可視化 -->
-    <div id="activeFilters" class="filters-wrap" aria-live="polite">
-      <span class="filters-title">フィルタ:</span>
-      <span class="filters-empty" id="filtersEmpty">未適用</span>
-      <!-- 個別フィルタのチップがここに入る -->
-    </div>
+
+    <span class="inline">表示バージョン:
+      <select id="versionSelect" class="inline"></select>
+    </span>
+
+    <span class="inline">比較対象:
+      <select id="compareSelect" class="inline"></select>
+    </span>
+
+    <label class="inline" style="display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="showDiffOnly">
+      差分のある行のみ表示
+    </label>
+
+    <button class="btn" id="openDiff">バージョン比較</button>
   </div>
 
   <table id="companyTable" aria-label="companies table">
@@ -79,7 +86,7 @@
     <tbody></tbody>
   </table>
 
-  <!-- ヘッダーフィルタパネル（1つを使い回し） -->
+  <!-- ヘッダーフィルタパネル -->
   <div id="filterPanel" class="filter-panel" role="dialog" aria-modal="false" aria-label="ヘッダーフィルタ">
     <div class="filter-head">
       <div class="filter-title" id="filterTitle">フィルタ</div>
@@ -96,7 +103,7 @@
     </div>
   </div>
 
-  <!-- バックドロップ（共用） -->
+  <!-- バックドロップ -->
   <div id="backdrop" class="backdrop" aria-hidden="true"></div>
 
   <!-- 従業員モーダル -->
@@ -122,33 +129,125 @@
     </footer>
   </div>
 
+  <!-- 差分比較モーダル（従来通り） -->
+  <div id="diffModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="diffTitle">
+    <header id="diffTitle">バージョン差分比較</header>
+    <div class="content">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+        <label>基準(A): <select id="diffA" class="inline"></select></label>
+        <label>比較(B): <select id="diffB" class="inline"></select></label>
+        <button class="btn" id="runDiff">比較する</button>
+      </div>
+      <div id="diffResult" class="diff-list"></div>
+    </div>
+    <footer>
+      <button class="btn" id="closeDiff">閉じる</button>
+    </footer>
+  </div>
+
   <script>
     // ====== 列メタ定義 ======
     const COLUMNS = [
-      { key: 'name',       title: '会社名',   filterable: true },
-      { key: 'location',   title: '所在地',   filterable: true },
-      { key: 'departments',title: '部署一覧', filterable: true } // 2階層を1セルに改行表示
+      { key: 'name',        title: '会社名',   filterable: true },
+      { key: 'location',    title: '所在地',   filterable: true },
+      { key: 'departments', title: '部署一覧', filterable: true }
     ];
 
     // ====== アプリ状態 ======
     const AppState = {
-      companies: [],
+      versions: [],                 // {id,label,timestamp,companies}[]
+      currentVersionId: null,       // 現在表示中
+      companies: [],                // 現在の companies
       visibleCols: COLUMNS.map(c => c.key),
       filters: { name: null, location: null, departments: null },
-      lastHeader: null
+      lastHeader: null,
+      // 差分フィルタ
+      diff: {
+        enabled: false,
+        baseVersionId: null,        // 比較対象（基準）
+        changedCompanySet: null     // base vs current の変更がある会社名Set
+      }
     };
 
     // ====== 初期化 ======
     $(async function () {
       try {
-        const data = await $.getJSON('data.json'); // { companies: [...] }
-        AppState.companies = data.companies || [];
+        const raw = await $.getJSON('data.json');
+        normalizeData(raw);
+        buildVersionSelectors();
+        // デフォルト: 最新を表示。比較対象は一つ前（なければ同一）
+        const latestId = AppState.versions.at(-1)?.id;
+        setCurrentVersion(latestId);
+        setCompareTarget(getPreviousVersionId(latestId) || latestId);
+        bindUI();
+        recomputeDiffSet(); // 初回計算
         renderAll();
       } catch (e) {
         alert('data.json の読み込みに失敗しました。ローカルで開いている場合は、静的サーバで実行してください。');
       }
+    });
 
-      // --- ヘッダー→フィルタパネル ---
+    // 旧スキーマ互換
+    function normalizeData(raw) {
+      if (Array.isArray(raw?.versions)) {
+        AppState.versions = raw.versions.map(v => ({
+          id: v.id || v.label || 'ver-' + Math.random().toString(36).slice(2,8),
+          label: v.label || v.id || '(no label)',
+          timestamp: v.timestamp || '',
+          companies: v.companies || []
+        }));
+      } else if (Array.isArray(raw?.companies)) {
+        AppState.versions = [{ id: 'default', label: 'default', timestamp: '', companies: raw.companies }];
+      } else {
+        AppState.versions = [];
+      }
+    }
+
+    function buildVersionSelectors() {
+      const $viewSel = $('#versionSelect').empty();
+      const $cmpSel  = $('#compareSelect').empty();
+      AppState.versions.forEach(v => {
+        const label = v.label || v.id;
+        $viewSel.append($('<option>').val(v.id).text(label));
+        $cmpSel.append($('<option>').val(v.id).text(label));
+      });
+      $viewSel.on('change', function() {
+        setCurrentVersion($(this).val());
+        recomputeDiffSet();
+        renderAll();
+      });
+      $cmpSel.on('change', function() {
+        setCompareTarget($(this).val());
+        recomputeDiffSet();
+        renderAll();
+      });
+      $('#showDiffOnly').on('change', function() {
+        AppState.diff.enabled = this.checked;
+        renderTableBody();
+      });
+    }
+
+    function setCurrentVersion(id) {
+      const v = AppState.versions.find(x => x.id === id);
+      if (!v) return;
+      AppState.currentVersionId = id;
+      AppState.companies = v.companies || [];
+      $('#versionSelect').val(id);
+    }
+
+    function setCompareTarget(id) {
+      AppState.diff.baseVersionId = id;
+      $('#compareSelect').val(id);
+    }
+
+    function getPreviousVersionId(id) {
+      const idx = AppState.versions.findIndex(v => v.id === id);
+      const prev = AppState.versions[Math.max(0, idx - 1)];
+      return prev?.id;
+    }
+
+    function bindUI() {
+      // ヘッダー → フィルタ
       $(document).on('click keydown', '#companyTable thead th[data-col]', function (evt) {
         if (evt.type === 'keydown' && !(evt.key === 'Enter' || evt.key === ' ')) return;
         const $th = $(this);
@@ -158,91 +257,70 @@
         AppState.lastHeader = colKey;
         openFilterPanel($th, colKey, meta.title);
       });
-
-      // フィルタ操作
-      $('#applyFilter').on('click', () => { applyCurrentFilter(); });
+      $('#applyFilter').on('click', applyCurrentFilter);
       $('#clearFilter').on('click', () => { clearCurrentFilter(); });
       $('#closeFilter').on('click', hideFilterPanel);
       $('#checkAll').on('click', () => $('#filterOptions input[type="checkbox"]').prop('checked', true));
       $('#uncheckAll').on('click', () => $('#filterOptions input[type="checkbox"]').prop('checked', false));
-
-      // パネル外クリックで閉じる
       $(document).on('click', function (e) {
         const $panel = $('#filterPanel');
         if ($panel.is(':visible') && !$(e.target).closest('#filterPanel, #companyTable thead th').length) hideFilterPanel();
       });
 
-      // --- 従業員モーダル ---
-      $('#closeEmployeeModal, #backdrop').on('click', closeAllModals);
-      $(document).on('keydown', e => { if (e.key === 'Escape') closeAllModals(); });
-
-      // --- 項目選択（列選択） ---
+      // 項目選択
       $('#openColPicker').on('click', openColPicker);
       $('#closeColPicker').on('click', closeAllModals);
       $('#selectAllCols').on('click', () => $('#colPickerList input[type="checkbox"]').prop('checked', true));
       $('#unselectAllCols').on('click', () => $('#colPickerList input[type="checkbox"]').prop('checked', false));
       $('#applyCols').on('click', applyColumnSelection);
 
-      // --- 可視化チップからフィルタをワンクリック解除 ---
-      $(document).on('click', '.chip-x[data-clear-filter]', function (e) {
-        e.stopPropagation();
-        const col = $(this).data('clear-filter');
-        AppState.filters[col] = null;
-        renderTableHead();
-        renderFilterStatus();
-        renderTableBody();
-      });
+      // 従業員モーダル
+      $('#closeEmployeeModal, #backdrop').on('click', closeAllModals);
+      $(document).on('keydown', e => { if (e.key === 'Escape') closeAllModals(); });
 
-      // キーボード操作（Enter/Space）でのフィルタ解除対応
-      $(document).on('keydown', '.chip-x[data-clear-filter]', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          $(this).trigger('click');
-        }
-      });
-    });
-
-    // ====== 全体レンダリング ======
-    function renderAll() {
-      renderTableHead();
-      renderFilterStatus();
-      renderTableBody();
-      updateVisibleColsStatus();
+      // 差分モーダル（従来の詳細ビュー）
+      $('#openDiff').on('click', openDiffModal);
+      $('#closeDiff').on('click', closeAllModals);
+      $('#runDiff').on('click', runDiff);
     }
 
-    // ====== THEAD描画（選択列のみ） ======
+    // ====== レンダリング ======
+    function renderAll() {
+      renderTableHead();
+      renderTableBody();
+      updateVisibleColsStatus();
+      // セレクタの同期
+      $('#versionSelect').val(AppState.currentVersionId);
+      $('#compareSelect').val(AppState.diff.baseVersionId);
+      $('#showDiffOnly').prop('checked', AppState.diff.enabled);
+    }
+
     function renderTableHead() {
       const $thead = $('#companyTable thead').empty();
       const $tr = $('<tr>');
       AppState.visibleCols.forEach(key => {
         const meta = COLUMNS.find(c => c.key === key);
         if (!meta) return;
-
-        const activeCount = Array.isArray(AppState.filters[key]) ? AppState.filters[key].length : 0;
         const $th = $('<th>').attr('data-col', meta.key)
           .attr('tabindex', meta.filterable ? 0 : -1)
-          .attr('aria-haspopup', meta.filterable ? 'dialog' : 'false');
-
-        const label = meta.title + (meta.filterable ? '（クリックでフィルタ）' : '');
-        const $labelSpan = $('<span>').text(label);
-        $th.append($labelSpan);
-
-        if (activeCount > 0) {
-          // バッジでアクティブ件数を可視化
-          $th.append($('<span class="badge">').text(activeCount));
-          $th.attr('aria-label', `${meta.title} に ${activeCount} 件のフィルタが適用中`);
-        }
-
+          .attr('aria-haspopup', meta.filterable ? 'dialog' : 'false')
+          .text(meta.title + (meta.filterable ? '（クリックでフィルタ）' : ''));
         $tr.append($th);
       });
       $thead.append($tr);
     }
 
-    // ====== TBODY描画（選択列のみ） ======
     function renderTableBody() {
       const $tbody = $('#companyTable tbody').empty();
+      const changedSet = AppState.diff.enabled ? (AppState.diff.changedCompanySet || new Set()) : null;
+
       AppState.companies
-        .filter(companyPassesFilters)
+        .filter(c => {
+          // 差分フィルタ
+          if (changedSet && !changedSet.has(c.name)) return false;
+          // 通常フィルタ
+          return companyPassesFilters(c);
+        })
         .forEach(c => {
           const $tr = $('<tr>');
           AppState.visibleCols.forEach(key => {
@@ -252,14 +330,14 @@
               $tr.append($('<td>').text(c.location));
             } else if (key === 'departments') {
               const $td = $('<td>');
-              c.departments.forEach((d, idx) => {
+              (c.departments || []).forEach((d, idx) => {
                 const $btn = $('<button class="dept-btn" type="button">')
                   .text(d.name)
                   .attr('data-company', c.name)
                   .attr('data-dept', d.name)
-                  .on('click', () => openEmployeesModal(c.name, d.name, d.employees));
+                  .on('click', () => openEmployeesModal(c.name, d.name, d.employees || []));
                 $td.append($btn);
-                if (idx < c.departments.length - 1) $td.append('<br/>');
+                if (idx < (c.departments?.length || 0) - 1) $td.append('<br/>');
               });
               $tr.append($td);
             }
@@ -268,68 +346,33 @@
         });
     }
 
-    // ====== フィルタ判定（チェックボックス複数選択対応） ======
-    function companyPassesFilters(c) {
-      const activeCols = new Set(AppState.visibleCols);
-      const f = AppState.filters;
+    function updateVisibleColsStatus() {
+      const labels = AppState.visibleCols
+        .map(k => COLUMNS.find(c => c.key === k)?.title || k)
+        .join(', ') || '(なし)';
+      $('#visibleColsStatus').text(labels);
+    }
 
-      if (activeCols.has('name') && Array.isArray(f.name) && f.name.length > 0 && !f.name.includes(c.name)) return false;
-      if (activeCols.has('location') && Array.isArray(f.location) && f.location.length > 0 && !f.location.includes(c.location)) return false;
-      if (activeCols.has('departments') && Array.isArray(f.departments) && f.departments.length > 0) {
-        const hasDept = c.departments.some(d => f.departments.includes(d.name));
+    // ====== 通常フィルタ ======
+    function companyPassesFilters(c) {
+      const active = new Set(AppState.visibleCols);
+      const f = AppState.filters;
+      if (active.has('name') && Array.isArray(f.name) && f.name.length > 0 && !f.name.includes(c.name)) return false;
+      if (active.has('location') && Array.isArray(f.location) && f.location.length > 0 && !f.location.includes(c.location)) return false;
+      if (active.has('departments') && Array.isArray(f.departments) && f.departments.length > 0) {
+        const hasDept = (c.departments || []).some(d => f.departments.includes(d.name));
         if (!hasDept) return false;
       }
       return true;
     }
 
-    // ====== フィルタ状態の常時可視化 ======
-    function renderFilterStatus() {
-      const $wrap = $('#activeFilters');
-      // 既存の動的チップをクリア（タイトルと「未適用」は残すので後で再制御）
-      $wrap.find('.chip').remove();
-
-      const active = [];
-      AppState.visibleCols.forEach(key => {
-        const meta = COLUMNS.find(c => c.key === key);
-        const vals = AppState.filters[key];
-        if (Array.isArray(vals) && vals.length > 0) {
-          active.push({ key, title: meta?.title ?? key, vals });
-        }
-      });
-
-      if (active.length === 0) {
-        $('#filtersEmpty').show().text('未適用');
-        return;
-      } else {
-        $('#filtersEmpty').hide();
-      }
-
-      active.forEach(({ key, title, vals }) => {
-        const text = `${title}: ${vals.join(' / ')}`;
-        const $chip = $('<span class="chip">')
-          .append($('<span>').text(text))
-          .append(
-            $('<button class="chip-x" type="button" title="このフィルタを解除" aria-label="このフィルタを解除">')
-              .attr('data-clear-filter', key)
-              .text('✕')
-  );
-
-        $wrap.append($chip);
-      });
-    }
-
-    // ====== フィルタパネル ======
+    // ====== ヘッダーフィルタUI ======
     function openFilterPanel($th, colKey, title) {
       const $panel = $('#filterPanel');
       const $opts = $('#filterOptions').empty();
-
       $('#filterTitle').text(`フィルタ：${title}`);
 
-      // --- 候補値を抽出して昇順ソート ---
-      const values = getUniqueValuesForColumn(colKey).sort((a, b) => a.localeCompare(b, 'ja'));
-
-      // --- 候補を描画 ---
-      values.forEach(v => {
+      getUniqueValuesForColumn(colKey).forEach(v => {
         const id = `opt-${colKey}-${encodeURIComponent(v)}`;
         const $row = $('<label class="filter-option">')
           .append($('<input type="checkbox">').attr({ id, value: v, name: 'filterOption' }))
@@ -337,51 +380,38 @@
         $opts.append($row);
       });
 
-      // 既存選択反映
       const cur = AppState.filters[colKey] || [];
       if (Array.isArray(cur) && cur.length > 0) {
         cur.forEach(v => $opts.find(`input[type="checkbox"][value="${cssEscape(v)}"]`).prop('checked', true));
       }
 
-      // 位置（ヘッダー直下）
       const off = $th.offset();
       const top = off.top + $th.outerHeight();
       const left = off.left;
       $panel.css({ top: top + 6, left: left }).show().attr('aria-modal', 'true');
-
-      // 初期フォーカス
       setTimeout(() => $opts.find('input[type="checkbox"]').first().trigger('focus'), 0);
     }
-
-
     function hideFilterPanel() { $('#filterPanel').hide().attr('aria-modal', 'false'); }
-
     function getUniqueValuesForColumn(colKey) {
       const set = new Set();
       for (const c of AppState.companies) {
         if (colKey === 'name') set.add(c.name);
         else if (colKey === 'location') set.add(c.location);
-        else if (colKey === 'departments') c.departments.forEach(d => set.add(d.name));
+        else if (colKey === 'departments') (c.departments || []).forEach(d => set.add(d.name));
       }
       return Array.from(set).sort((a, b) => a.localeCompare(b, 'ja'));
     }
-
     function applyCurrentFilter() {
       if (!AppState.lastHeader) return;
       const selected = $('#filterOptions input[type="checkbox"]:checked').map((_, el) => $(el).val()).get();
       AppState.filters[AppState.lastHeader] = selected.length > 0 ? selected : null;
       hideFilterPanel();
-      renderTableHead();    // バッジ更新
-      renderFilterStatus(); // チップ更新
-      renderTableBody();    // データ再描画
+      renderTableBody();
     }
-
     function clearCurrentFilter() {
       if (!AppState.lastHeader) return;
       AppState.filters[AppState.lastHeader] = null;
       hideFilterPanel();
-      renderTableHead();
-      renderFilterStatus();
       renderTableBody();
     }
 
@@ -397,7 +427,7 @@
       showModal('#employeeModal');
     }
 
-    // ====== 列選択モーダル ======
+    // ====== 列選択 ======
     function openColPicker() {
       const $list = $('#colPickerList').empty();
       COLUMNS.forEach(col => {
@@ -407,51 +437,143 @@
           .append($('<span>').text(col.title));
         $list.append($item);
       });
-      // 現在の表示列を反映
       $('#colPickerList input[type="checkbox"]').each(function () {
         $(this).prop('checked', AppState.visibleCols.includes($(this).val()));
       });
-
       showModal('#colPickerModal');
     }
-
     function applyColumnSelection() {
       const selected = $('#colPickerList input[type="checkbox"]:checked').map((_, el) => $(el).val()).get();
-      if (selected.length === 0) {
-        alert('少なくとも1つの列を選択してください。');
-        return;
-      }
+      if (selected.length === 0) { alert('少なくとも1つの列を選択してください。'); return; }
       AppState.visibleCols = selected;
-
-      // 非表示にした列のフィルタはクリア
       const active = new Set(AppState.visibleCols);
-      for (const k of Object.keys(AppState.filters)) {
-        if (!active.has(k)) AppState.filters[k] = null;
-      }
-
+      for (const k of Object.keys(AppState.filters)) { if (!active.has(k)) AppState.filters[k] = null; }
       closeAllModals();
-      renderAll(); // ヘッダー/チップ/本文/列ステータスを一括更新
+      renderAll();
     }
 
-    // ====== 共通：モーダル制御・UI ======
-    function showModal(selector) {
-      $('#backdrop').show().attr('aria-hidden', 'false');
-      $(selector).show();
+    // ====== 差分：UI（既存の詳細比較モーダル） ======
+    function openDiffModal() {
+      const $a = $('#diffA').empty();
+      const $b = $('#diffB').empty();
+      AppState.versions.forEach(v => {
+        const label = v.label || v.id;
+        $a.append($('<option>').val(v.id).text(label));
+        $b.append($('<option>').val(v.id).text(label));
+      });
+      const idx = AppState.versions.findIndex(v => v.id === AppState.currentVersionId);
+      const aId = AppState.versions[Math.max(0, idx - 1)]?.id || AppState.versions[0]?.id;
+      $('#diffA').val(aId);
+      $('#diffB').val(AppState.currentVersionId);
+      $('#diffResult').empty();
+      showModal('#diffModal');
     }
-    function closeAllModals() {
-      $('.modal').hide();
-      $('#backdrop').hide().attr('aria-hidden', 'true');
-      hideFilterPanel();
+    function runDiff() {
+      const idA = $('#diffA').val();
+      const idB = $('#diffB').val();
+      if (idA === idB) { $('#diffResult').html('<p class="muted">同一バージョンが選択されています。</p>'); return; }
+      const vA = AppState.versions.find(v => v.id === idA);
+      const vB = AppState.versions.find(v => v.id === idB);
+      const diff = diffCompanies(vA?.companies || [], vB?.companies || []);
+      renderDiff(diff, vA, vB);
+    }
+    function renderDiff(diff, vA, vB) {
+      const $out = $('#diffResult').empty();
+      const header = $('<div class="muted mono" style="margin-bottom:6px;"></div>').text(`A=${vA?.label || vA?.id}  →  B=${vB?.label || vB?.id}`);
+      $out.append(header);
+      if (!diff.hasChanges) { $out.append('<p>差分はありません。</p>'); return; }
+      if (diff.addedCompanies.length) $out.append(block('追加された会社', diff.addedCompanies.map(x => li('+ ' + x, 'add'))));
+      if (diff.removedCompanies.length) $out.append(block('削除された会社', diff.removedCompanies.map(x => li('- ' + x, 'del'))));
+      diff.changedCompanies.forEach(cc => {
+        const items = [];
+        if (cc.locationChanged) items.push(li(`所在地: "${cc.locationChanged.from}" → "${cc.locationChanged.to}"`, 'chg'));
+        const d = cc.departments;
+        if (d.added.length)   items.push(li('追加部署: ' + d.added.join(', '), 'add'));
+        if (d.removed.length) items.push(li('削除部署: ' + d.removed.join(', '), 'del'));
+        d.changed.forEach(ch => {
+          const parts = [];
+          if (ch.employees.added.length)   parts.push(span('+' + ch.employees.added.join(', '), 'add'));
+          if (ch.employees.removed.length) parts.push(span('-' + ch.employees.removed.join(', '), 'del'));
+          items.push(li(`部署 ${ch.name} の従業員変更: `).append(parts));
+        });
+        $out.append(block(`会社の変更: ${cc.name}`, items));
+      });
+      function block(title, items) { const $b = $('<div class="diff-block">'); $b.append($('<div class="diff-title">').text(title)); const $ul = $('<ul style="margin:0 0 0 18px;"></ul>'); items.forEach(i => $ul.append(i)); $b.append($ul); return $b; }
+      function li(text, cls) { const $li = $('<li>'); if (typeof text === 'string') $li.text(text); else $li.append(text); if (cls) $li.addClass(cls); return $li; }
+      function span(text, cls) { const $s = $('<span>').text(' ' + text + ' '); if (cls) $s.addClass(cls); return $s; }
     }
 
-    function updateVisibleColsStatus() {
-      const labels = AppState.visibleCols
-        .map(k => COLUMNS.find(c => c.key === k)?.title || k)
-        .join(', ');
-      $('#visibleColsStatus').text(labels);
+    // ====== 差分：ロジック（行フィルタ用の集合を作る） ======
+    function recomputeDiffSet() {
+      const baseId = AppState.diff.baseVersionId;
+      const curId  = AppState.currentVersionId;
+      if (!baseId || !curId) { AppState.diff.changedCompanySet = null; return; }
+      const vA = AppState.versions.find(v => v.id === baseId);
+      const vB = AppState.versions.find(v => v.id === curId);
+      const diff = diffCompanies(vA?.companies || [], vB?.companies || []);
+      // 行表示の対象: 追加された会社 + 変更のあった会社（削除は現在に存在しないので行に出せない）
+      const names = new Set();
+      diff.addedCompanies.forEach(n => names.add(n));
+      diff.changedCompanies.forEach(cc => names.add(cc.name));
+      AppState.diff.changedCompanySet = names;
     }
 
-    // CSSエスケープ（値に特殊文字が入る可能性に備える）
+    // 会社→部署→従業員の差分計算（既存）
+    function diffCompanies(aCompanies, bCompanies) {
+      const aMap = new Map(aCompanies.map(c => [c.name, c]));
+      const bMap = new Map(bCompanies.map(c => [c.name, c]));
+      const addedCompanies = [];
+      const removedCompanies = [];
+      const changedCompanies = [];
+      for (const [name, cB] of bMap.entries()) {
+        if (!aMap.has(name)) {
+          addedCompanies.push(name);
+        } else {
+          const cA = aMap.get(name);
+          const deptDiff = diffDepartments(cA.departments || [], cB.departments || []);
+          const locChanged = (cA.location || '') !== (cB.location || '');
+          if (locChanged || deptDiff.hasChanges) {
+            changedCompanies.push({
+              name,
+              locationChanged: locChanged ? { from: cA.location || '', to: cB.location || '' } : null,
+              departments: deptDiff
+            });
+          }
+        }
+      }
+      for (const [name] of aMap.entries()) {
+        if (!bMap.has(name)) removedCompanies.push(name);
+      }
+      const hasChanges = addedCompanies.length || removedCompanies.length || changedCompanies.length;
+      return { hasChanges, addedCompanies, removedCompanies, changedCompanies };
+    }
+    function diffDepartments(aDepts, bDepts) {
+      const aMap = new Map(aDepts.map(d => [d.name, d]));
+      const bMap = new Map(bDepts.map(d => [d.name, d]));
+      const added = [], removed = [], changed = [];
+      for (const [name, dB] of bMap.entries()) {
+        if (!aMap.has(name)) added.push(name);
+        else {
+          const dA = aMap.get(name);
+          const empDiff = diffArray(dA.employees || [], dB.employees || []);
+          if (empDiff.added.length || empDiff.removed.length) changed.push({ name, employees: empDiff });
+        }
+      }
+      for (const [name] of aMap.entries()) if (!bMap.has(name)) removed.push(name);
+      const hasChanges = added.length || removed.length || changed.length;
+      return { hasChanges, added, removed, changed };
+    }
+    function diffArray(aArr, bArr) {
+      const aSet = new Set(aArr), bSet = new Set(bArr);
+      const added = [], removed = [];
+      for (const x of bSet) if (!aSet.has(x)) added.push(x);
+      for (const x of aSet) if (!bSet.has(x)) removed.push(x);
+      return { added, removed };
+    }
+
+    // ====== 共通：モーダル制御・ユーティリティ ======
+    function showModal(selector) { $('#backdrop').show().attr('aria-hidden', 'false'); $(selector).show(); }
+    function closeAllModals() { $('.modal').hide(); $('#backdrop').hide().attr('aria-hidden', 'true'); hideFilterPanel(); }
     function cssEscape(str) { return String(str).replace(/(["'\\])/g, '\\$1'); }
   </script>
 </body>
