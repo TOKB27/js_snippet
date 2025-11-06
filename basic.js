@@ -40,3 +40,15 @@ console.log(obj2);
 const flag = true;
 const text = flag ? "flagはtrueです" : "flagはfalseです";
 console.log(text);
+
+// 複数プロセスの統合
+function processAll(list) {
+  list.forEach(([a, b]) => {
+    console.log(a, b);
+  });
+}
+processAll([
+  [1, 2],
+  [3, 4],
+  [5, 6],
+]);
