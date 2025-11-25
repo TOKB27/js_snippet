@@ -3,16 +3,16 @@
 // </div>
 
 $(function () {
-  const total = 10000;
-
-  // データモデル：チェック状態を保持する
-  const data = Array.from({ length: total }, (_, i) => ({
-    id: i,
-    label: `行データ ${i} —— テキスト量によって高さが変わるかもしれない`,
-    checked: false
+  // ★ここが一番重要：defaultList をそのまま使う
+  const data = defaultList.map((item, i) => ({
+    ...item,
+    _index: i,        // 内部管理用のインデックス
+    checked: false,   // チェック状態を保持する
   }));
 
-  // 初期想定の高さ（適当に「このくらい」と置いておく）
+  const total = data.length;
+
+  // 初期想定の高さ
   const defaultRowHeight = 40;
 
   // 各行の高さキャッシュ
@@ -25,18 +25,16 @@ $(function () {
     offsets[i] = offsets[i - 1] + heights[i - 1];
   }
 
-  let startIndex = 0; // 前回の開始行
+  let startIndex = 0;
 
   const $viewport = $("#viewport");
-  const $content  = $("#content");
+  const $content = $("#content");
 
-  // content をスクロール用の大きな箱にする
   $content.css({
     position: "relative",
     height: offsets[total - 1] + heights[total - 1] + "px"
   });
 
-  // 指定インデックス以降の offsets を再計算
   function recalcOffsetsFrom(idx) {
     for (let i = idx + 1; i < total; i++) {
       offsets[i] = offsets[i - 1] + heights[i - 1];
@@ -45,29 +43,25 @@ $(function () {
     $content.height(totalHeight);
   }
 
-  // scrollTop に合わせて startIndex を前回値から調整
   function adjustStartIndex(scrollTop) {
-    // 上方向へ戻った場合
     while (startIndex > 0 && offsets[startIndex] > scrollTop) {
       startIndex--;
     }
-    // 下方向へ進んだ場合
     while (startIndex < total - 1 && offsets[startIndex + 1] <= scrollTop) {
       startIndex++;
     }
   }
 
   function render() {
-    const scrollTop      = $viewport.scrollTop();
+    const scrollTop = $viewport.scrollTop();
     const viewportBottom = scrollTop + $viewport.height();
-    const buffer         = 200; // 画面の下にちょっと余分に描画（px）
+    const buffer = 200; // 少し多めに描画
 
     adjustStartIndex(scrollTop);
 
     let html = "";
     let i = startIndex;
 
-    // 表示範囲 + バッファ内の行だけ描画
     while (i < total && offsets[i] < viewportBottom + buffer) {
       const row = data[i];
 
@@ -87,7 +81,7 @@ $(function () {
                    class="row-check"
                    data-index="${i}"
                    ${row.checked ? "checked" : ""}>
-            ${row.label}
+            ${row.text ?? row.label ?? JSON.stringify(row)}
           </label>
         </div>
       `;
@@ -96,11 +90,11 @@ $(function () {
 
     $content.html(html);
 
-    // 描画された要素の実際の高さを取得し、キャッシュ更新
+    // 高さ測定
     $content.children(".row").each(function () {
       const $row = $(this);
-      const idx  = Number($row.data("index"));
-      const h    = $row.outerHeight();
+      const idx = Number($row.data("index"));
+      const h = $row.outerHeight();
 
       if (h !== heights[idx]) {
         heights[idx] = h;
@@ -109,16 +103,14 @@ $(function () {
     });
   }
 
-  // チェックボックスの状態変更 → data側に反映
+  // チェック状態保持
   $content.on("change", ".row-check", function () {
     const idx = Number($(this).data("index"));
     const checked = $(this).prop("checked");
     data[idx].checked = checked;
-    // 必要であればここで別処理（選択件数カウントなど）も
   });
 
   $viewport.on("scroll", render);
 
-  // 初回表示
   render();
 });
