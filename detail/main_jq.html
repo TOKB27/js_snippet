@@ -3,302 +3,553 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bootstrap + jQuery（テーブル＋絞り込み＋モーダル閲覧/編集）</title>
+  <title>Bootstrap + jQuery（操作カラム固定・詳細/申請・横/縦スクロール・100件超でページネーション）</title>
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
     /* readonly は見た目で分かるように */
-    .form-control[readonly] {
-      cursor: not-allowed;
+    .form-control[readonly] { cursor: not-allowed; }
+
+    /* 横・縦スクロール */
+    .table-wrap {
+      max-height: 60vh;      /* レコード数が多いとき縦スクロール */
+      overflow-y: auto;
+      overflow-x: auto;      /* カラム数が多いとき横スクロール */
     }
+
+    /* テーブルレイアウト固定（列幅制御のため） */
+    table.fixed-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    /* 操作カラムを固定幅に（カラム数が増えても変わらない） */
+    th.col-action, td.col-action {
+      width: 160px;
+      min-width: 160px;
+      max-width: 160px;
+      white-space: nowrap;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    /* 操作カラム内ボタンの横並び */
+    .action-btns {
+      display: inline-flex;
+      gap: .25rem;
+      justify-content: center;
+      width: 100%;
+    }
+
+    /* 文字の折り返し抑制（任意：カラムの見た目を保つ） */
+    td, th { overflow: hidden; text-overflow: ellipsis; }
+
+    /* ヘッダー固定したい場合はコメント外してください
+    thead th { position: sticky; top: 0; z-index: 2; }
+    */
   </style>
 </head>
 <body class="bg-light">
 
-  <div class="container py-4">
+<div class="container py-4">
 
-    <!-- Header -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-      <h1 class="h4 m-0">トップ画面</h1>
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h4 m-0">トップ画面</h1>
 
-      <div class="d-flex gap-2">
-        <!-- Pull-down filter -->
-        <select class="form-select form-select-sm w-auto" id="statusFilter">
-          <option value="">すべて</option>
-          <option value="有効">有効</option>
-          <option value="停止">停止</option>
-        </select>
+    <div class="d-flex gap-2">
+      <!-- Pull-down filter -->
+      <select class="form-select form-select-sm w-auto" id="statusFilter">
+        <option value="">すべて</option>
+        <option value="有効">有効</option>
+        <option value="停止">停止</option>
+      </select>
 
-        <button class="btn btn-primary btn-sm" type="button">新規作成</button>
-      </div>
+      <button class="btn btn-primary btn-sm" type="button" id="addDummyRowBtn">ダミー追加</button>
     </div>
-
-    <!-- Table -->
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th style="width: 90px;">操作</th>
-                <th>ID</th>
-                <th>名前</th>
-                <th>状態</th>
-                <th>更新日</th>
-              </tr>
-            </thead>
-
-            <tbody id="mainTbody">
-              <tr data-status="有効">
-                <td>
-                  <button
-                    type="button"
-                    class="btn btn-outline-primary btn-sm js-open-modal"
-                    data-bs-toggle="modal"
-                    data-bs-target="#detailModal"
-                    data-id="101"
-                    data-name="田中 太郎"
-                    data-status="有効"
-                    data-updated="2025-12-17"
-                  >
-                    詳細
-                  </button>
-                </td>
-                <td>101</td>
-                <td>田中 太郎</td>
-                <td><span class="badge text-bg-success">有効</span></td>
-                <td>2025-12-17</td>
-              </tr>
-
-              <tr data-status="停止">
-                <td>
-                  <button
-                    type="button"
-                    class="btn btn-outline-primary btn-sm js-open-modal"
-                    data-bs-toggle="modal"
-                    data-bs-target="#detailModal"
-                    data-id="102"
-                    data-name="佐藤 花子"
-                    data-status="停止"
-                    data-updated="2025-12-10"
-                  >
-                    詳細
-                  </button>
-                </td>
-                <td>102</td>
-                <td>佐藤 花子</td>
-                <td><span class="badge text-bg-secondary">停止</span></td>
-                <td>2025-12-10</td>
-              </tr>
-
-              <tr data-status="有効">
-                <td>
-                  <button
-                    type="button"
-                    class="btn btn-outline-primary btn-sm js-open-modal"
-                    data-bs-toggle="modal"
-                    data-bs-target="#detailModal"
-                    data-id="103"
-                    data-name="鈴木 次郎"
-                    data-status="有効"
-                    data-updated="2025-11-30"
-                  >
-                    詳細
-                  </button>
-                </td>
-                <td>103</td>
-                <td>鈴木 次郎</td>
-                <td><span class="badge text-bg-success">有効</span></td>
-                <td>2025-11-30</td>
-              </tr>
-            </tbody>
-
-          </table>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <!-- Modal -->
-  <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
+  <!-- Table -->
+  <div class="card shadow-sm">
+    <div class="card-body">
 
-        <!-- Modal header (mode switch at top) -->
-        <div class="modal-header d-flex justify-content-between align-items-center">
-          <h5 class="modal-title">詳細</h5>
+      <!-- 横/縦スクロール領域 -->
+      <div class="table-wrap">
+        <table class="table table-bordered table-hover align-middle mb-0 fixed-table" id="mainTable">
+          <!-- colgroup：操作列を固定 -->
+          <colgroup>
+            <col style="width:160px">
+            <col style="width:80px">
+            <col style="width:180px">
+            <col style="width:90px">
+            <col style="width:130px">
+            <col style="width:160px">
+            <col style="width:180px">
+            <col style="width:120px">
+            <col style="width:200px">
+            <col style="width:140px">
+            <col style="width:160px">
+            <col style="width:160px">
+          </colgroup>
 
-          <div class="btn-group btn-group-sm" role="group" aria-label="閲覧編集切り替え">
-            <button type="button" class="btn btn-outline-secondary active" id="viewModeBtn">閲覧</button>
-            <button type="button" class="btn btn-outline-secondary" id="editModeBtn">編集</button>
+          <thead class="table-light">
+            <tr>
+              <th class="col-action">操作</th>
+              <th>ID</th>
+              <th>名前</th>
+              <th>状態</th>
+              <th>更新日</th>
+              <!-- カラム多め（横スクロール確認用） -->
+              <th>部署</th>
+              <th>メール</th>
+              <th>権限</th>
+              <th>備考</th>
+              <th>タグ</th>
+              <th>項目A</th>
+              <th>項目B</th>
+            </tr>
+          </thead>
+
+          <tbody id="mainTbody">
+            <!-- JSで描画 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ページネーション（100件超のときだけ表示） -->
+      <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3">
+        <div class="text-muted small" id="resultInfo">-</div>
+
+        <nav aria-label="ページネーション" id="pagerWrap" class="d-none">
+          <ul class="pagination pagination-sm mb-0" id="pager">
+            <!-- JSで描画 -->
+          </ul>
+        </nav>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal（閲覧/編集） -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <!-- Modal header (mode switch at top) -->
+      <div class="modal-header d-flex justify-content-between align-items-center">
+        <h5 class="modal-title">詳細</h5>
+
+        <div class="btn-group btn-group-sm" role="group" aria-label="閲覧編集切り替え">
+          <button type="button" class="btn btn-outline-secondary active" id="viewModeBtn">閲覧</button>
+          <button type="button" class="btn btn-outline-secondary" id="editModeBtn">編集</button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <form id="detailForm">
+
+          <!-- ID -->
+          <div class="row mb-3">
+            <label class="col-sm-3 col-form-label">ID</label>
+            <div class="col-sm-9">
+              <p class="form-control-plaintext view-mode" id="viewId">-</p>
+              <input
+                type="text"
+                class="form-control edit-mode d-none bg-light text-muted"
+                id="editId"
+                readonly
+                tabindex="-1"
+              >
+            </div>
           </div>
-        </div>
 
-        <div class="modal-body">
-          <form id="detailForm">
-
-            <!-- ID -->
-            <div class="row mb-3">
-              <label class="col-sm-3 col-form-label">ID</label>
-              <div class="col-sm-9">
-                <p class="form-control-plaintext view-mode" id="viewId">-</p>
-                <input
-                  type="text"
-                  class="form-control edit-mode d-none bg-light text-muted"
-                  id="editId"
-                  readonly
-                  tabindex="-1"
-                >
-              </div>
+          <!-- 名前 -->
+          <div class="row mb-3">
+            <label class="col-sm-3 col-form-label">名前</label>
+            <div class="col-sm-9">
+              <p class="form-control-plaintext view-mode" id="viewName">-</p>
+              <input type="text" class="form-control edit-mode d-none" id="editName">
             </div>
+          </div>
 
-            <!-- 名前 -->
-            <div class="row mb-3">
-              <label class="col-sm-3 col-form-label">名前</label>
-              <div class="col-sm-9">
-                <p class="form-control-plaintext view-mode" id="viewName">-</p>
-                <input type="text" class="form-control edit-mode d-none" id="editName">
-              </div>
+          <!-- 状態 -->
+          <div class="row mb-3">
+            <label class="col-sm-3 col-form-label">状態</label>
+            <div class="col-sm-9">
+              <p class="form-control-plaintext view-mode" id="viewStatus">-</p>
+              <select class="form-select edit-mode d-none" id="editStatus">
+                <option value="有効">有効</option>
+                <option value="停止">停止</option>
+              </select>
             </div>
+          </div>
 
-            <!-- 状態 -->
-            <div class="row mb-3">
-              <label class="col-sm-3 col-form-label">状態</label>
-              <div class="col-sm-9">
-                <p class="form-control-plaintext view-mode" id="viewStatus">-</p>
-                <select class="form-select edit-mode d-none" id="editStatus">
-                  <option value="有効">有効</option>
-                  <option value="停止">停止</option>
-                </select>
-              </div>
+          <!-- 更新日 -->
+          <div class="row mb-3">
+            <label class="col-sm-3 col-form-label">更新日</label>
+            <div class="col-sm-9">
+              <p class="form-control-plaintext view-mode" id="viewUpdated">-</p>
+              <input type="date" class="form-control edit-mode d-none" id="editUpdated">
             </div>
+          </div>
 
-            <!-- 更新日 -->
-            <div class="row mb-0">
-              <label class="col-sm-3 col-form-label">更新日</label>
-              <div class="col-sm-9">
-                <p class="form-control-plaintext view-mode" id="viewUpdated">-</p>
-                <input type="date" class="form-control edit-mode d-none" id="editUpdated">
-              </div>
+          <!-- 追加項目 -->
+          <div class="row mb-3">
+            <label class="col-sm-3 col-form-label">部署</label>
+            <div class="col-sm-9">
+              <p class="form-control-plaintext view-mode" id="viewDept">-</p>
+              <input type="text" class="form-control edit-mode d-none" id="editDept">
             </div>
+          </div>
 
-          </form>
-        </div>
+          <div class="row mb-3">
+            <label class="col-sm-3 col-form-label">メール</label>
+            <div class="col-sm-9">
+              <p class="form-control-plaintext view-mode" id="viewEmail">-</p>
+              <input type="email" class="form-control edit-mode d-none" id="editEmail">
+            </div>
+          </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">閉じる</button>
-          <button type="submit" class="btn btn-success edit-mode d-none" form="detailForm">保存</button>
-        </div>
+          <div class="row mb-0">
+            <label class="col-sm-3 col-form-label">権限</label>
+            <div class="col-sm-9">
+              <p class="form-control-plaintext view-mode" id="viewRole">-</p>
+              <select class="form-select edit-mode d-none" id="editRole">
+                <option value="一般">一般</option>
+                <option value="管理者">管理者</option>
+              </select>
+            </div>
+          </div>
 
+        </form>
       </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">閉じる</button>
+        <button type="submit" class="btn btn-success edit-mode d-none" form="detailForm">保存</button>
+      </div>
+
     </div>
   </div>
+</div>
 
-  <!-- jQuery -->
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(function () {
+  // ========= 設定 =========
+  const PAGINATION_THRESHOLD = 100; // 100件以上でページネーション表示
+  const PAGE_SIZE = 50;             // 1ページ件数（好みで調整）
 
-  <script>
-    $(function () {
-      // ====== Filter (pull-down) ======
-      $("#statusFilter").on("change", function () {
-        const selected = $(this).val();
+  // ========= ダミーデータ（実際はAPIで取得してrecordsに入れる想定） =========
+  let records = [];
+  function seed() {
+    const base = [
+      { id:"101", name:"田中 太郎", status:"有効", updated:"2025-12-17", dept:"開発", email:"taro@example.com", role:"一般", note:"-", tag:"A", a:"A1", b:"B1" },
+      { id:"102", name:"佐藤 花子", status:"停止", updated:"2025-12-10", dept:"企画", email:"hanako@example.com", role:"管理者", note:"-", tag:"B", a:"A2", b:"B2" },
+      { id:"103", name:"鈴木 次郎", status:"有効", updated:"2025-11-30", dept:"品質", email:"jiro@example.com", role:"一般", note:"-", tag:"C", a:"A3", b:"B3" },
+    ];
+    records = base.slice();
 
-        $("#mainTbody tr").each(function () {
-          const status = $(this).data("status");
-          $(this).toggle(!selected || status === selected);
-        });
+    // 100件超の挙動確認用（不要なら削除）
+    for (let i = 104; i <= 230; i++) {
+      records.push({
+        id: String(i),
+        name: `ユーザー${i}`,
+        status: (i % 3 === 0) ? "停止" : "有効",
+        updated: "2025-12-01",
+        dept: (i % 2 === 0) ? "開発" : "企画",
+        email: `user${i}@example.com`,
+        role: (i % 10 === 0) ? "管理者" : "一般",
+        note: (i % 7 === 0) ? "メモあり" : "-",
+        tag: (i % 5 === 0) ? "X" : "Y",
+        a: `A${i}`,
+        b: `B${i}`
       });
+    }
+  }
+  seed();
 
-      // ====== Mode switch (view <-> edit) ======
-      function switchToViewMode() {
-        $("#detailModal .edit-mode").addClass("d-none");
-        $("#detailModal .view-mode").removeClass("d-none");
-        $("#viewModeBtn").addClass("active");
-        $("#editModeBtn").removeClass("active");
+  // ========= 状態 =========
+  let currentPage = 1;
+  let currentFilterStatus = "";
+
+  // ========= ユーティリティ =========
+  function badgeHtml(status) {
+    const cls = (status === "有効") ? "text-bg-success" : "text-bg-secondary";
+    return `<span class="badge ${cls}">${status}</span>`;
+  }
+
+  function getFilteredRecords() {
+    if (!currentFilterStatus) return records.slice();
+    return records.filter(r => r.status === currentFilterStatus);
+  }
+
+  function clampPage(page, totalPages) {
+    if (totalPages <= 0) return 1;
+    return Math.min(Math.max(1, page), totalPages);
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function buildPageList(current, total, maxNumbers) {
+    if (total <= maxNumbers) {
+      return Array.from({length: total}, (_, i) => i + 1);
+    }
+    const out = [];
+    const mid = Math.floor((maxNumbers - 3) / 2);
+
+    out.push(1);
+
+    let left = Math.max(2, current - mid);
+    let right = Math.min(total - 1, current + mid);
+
+    if (left > 2) out.push("...");
+    for (let i = left; i <= right; i++) out.push(i);
+    if (right < total - 1) out.push("...");
+
+    out.push(total);
+    return out;
+  }
+
+  // ========= テーブル描画 =========
+  function renderTable() {
+    const filtered = getFilteredRecords();
+    const usePager = filtered.length >= PAGINATION_THRESHOLD;
+
+    const totalPages = usePager ? Math.ceil(filtered.length / PAGE_SIZE) : 1;
+    currentPage = clampPage(currentPage, totalPages);
+
+    const start = usePager ? (currentPage - 1) * PAGE_SIZE : 0;
+    const end = usePager ? start + PAGE_SIZE : filtered.length;
+    const pageItems = filtered.slice(start, end);
+
+    // 情報表示
+    const from = filtered.length ? (start + 1) : 0;
+    const to = filtered.length ? Math.min(end, filtered.length) : 0;
+    $("#resultInfo").text(`件数: ${filtered.length}件（表示: ${from}〜${to}）`);
+
+    const rowsHtml = pageItems.map(r => `
+      <tr data-status="${r.status}">
+        <td class="col-action">
+          <div class="action-btns">
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm js-open-modal"
+              data-bs-toggle="modal"
+              data-bs-target="#detailModal"
+              data-id="${r.id}"
+            >詳細</button>
+
+            <button
+              type="button"
+              class="btn btn-outline-success btn-sm js-apply"
+              data-id="${r.id}"
+            >申請</button>
+          </div>
+        </td>
+        <td>${r.id}</td>
+        <td title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</td>
+        <td>${badgeHtml(r.status)}</td>
+        <td>${r.updated || "-"}</td>
+        <td title="${escapeHtml(r.dept||"-")}">${escapeHtml(r.dept || "-")}</td>
+        <td title="${escapeHtml(r.email||"-")}">${escapeHtml(r.email || "-")}</td>
+        <td>${escapeHtml(r.role || "-")}</td>
+        <td title="${escapeHtml(r.note||"-")}">${escapeHtml(r.note || "-")}</td>
+        <td>${escapeHtml(r.tag || "-")}</td>
+        <td>${escapeHtml(r.a || "-")}</td>
+        <td>${escapeHtml(r.b || "-")}</td>
+      </tr>
+    `).join("");
+
+    $("#mainTbody").html(rowsHtml);
+
+    // pager
+    if (usePager) {
+      $("#pagerWrap").removeClass("d-none");
+      renderPager(totalPages);
+    } else {
+      $("#pagerWrap").addClass("d-none");
+      $("#pager").empty();
+    }
+  }
+
+  function renderPager(totalPages) {
+    const maxNumbers = 7;
+    const pages = buildPageList(currentPage, totalPages, maxNumbers);
+
+    const li = [];
+
+    li.push(`
+      <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
+        <a class="page-link" href="#" data-page="${currentPage - 1}">前へ</a>
+      </li>
+    `);
+
+    pages.forEach(p => {
+      if (p === "...") {
+        li.push(`<li class="page-item disabled"><span class="page-link">…</span></li>`);
+      } else {
+        li.push(`
+          <li class="page-item ${p === currentPage ? "active" : ""}">
+            <a class="page-link" href="#" data-page="${p}">${p}</a>
+          </li>
+        `);
       }
-
-      function switchToEditMode() {
-        $("#detailModal .view-mode").addClass("d-none");
-        $("#detailModal .edit-mode").removeClass("d-none");
-        $("#editModeBtn").addClass("active");
-        $("#viewModeBtn").removeClass("active");
-      }
-
-      $("#viewModeBtn").on("click", switchToViewMode);
-      $("#editModeBtn").on("click", switchToEditMode);
-
-      // Close modal => always back to view mode
-      $("#detailModal").on("hidden.bs.modal", function () {
-        switchToViewMode();
-      });
-
-      // ====== Open modal & inject values ======
-      $(document).on("click", ".js-open-modal", function () {
-        const $btn = $(this);
-
-        // view
-        $("#viewId").text($btn.data("id") ?? "-");
-        $("#viewName").text($btn.data("name") ?? "-");
-        $("#viewStatus").text($btn.data("status") ?? "-");
-        $("#viewUpdated").text($btn.data("updated") ?? "-");
-
-        // edit
-        $("#editId").val($btn.data("id") ?? "");
-        $("#editName").val($btn.data("name") ?? "");
-        $("#editStatus").val($btn.data("status") ?? "有効");
-        $("#editUpdated").val($btn.data("updated") ?? "");
-
-        switchToViewMode();
-      });
-
-      // ====== Save (demo: update table + button data) ======
-      $("#detailForm").on("submit", function (e) {
-        e.preventDefault();
-
-        const id = $("#editId").val();
-        const name = $("#editName").val();
-        const status = $("#editStatus").val();
-        const updated = $("#editUpdated").val() || "-";
-
-        // 対象行を探す（2列目のIDで一致）
-        const $row = $("#mainTbody tr").filter(function () {
-          return $(this).find("td:eq(1)").text().trim() === id;
-        });
-
-        if ($row.length) {
-          $row.data("status", status);
-          $row.attr("data-status", status); // フィルターのために属性も更新
-
-          $row.find("td:eq(2)").text(name);
-          $row.find("td:eq(4)").text(updated);
-
-          const badgeClass = (status === "有効") ? "text-bg-success" : "text-bg-secondary";
-          $row.find("td:eq(3)").html(`<span class="badge ${badgeClass}">${status}</span>`);
-
-          // 次回モーダル表示用にボタンのdataも更新
-          $row.find(".js-open-modal").data({
-            name: name,
-            status: status,
-            updated: (updated === "-" ? "" : updated)
-          });
-        }
-
-        // モーダル表示側も更新して閲覧モードへ
-        $("#viewId").text(id);
-        $("#viewName").text(name);
-        $("#viewStatus").text(status);
-        $("#viewUpdated").text(updated);
-
-        switchToViewMode();
-      });
     });
-  </script>
+
+    li.push(`
+      <li class="page-item ${currentPage === totalPages ? "disabled" : ""}">
+        <a class="page-link" href="#" data-page="${currentPage + 1}">次へ</a>
+      </li>
+    `);
+
+    $("#pager").html(li.join(""));
+  }
+
+  // ========= モーダル：モード切替（上部） =========
+  function switchToViewMode() {
+    $("#detailModal .edit-mode").addClass("d-none");
+    $("#detailModal .view-mode").removeClass("d-none");
+    $("#viewModeBtn").addClass("active");
+    $("#editModeBtn").removeClass("active");
+  }
+  function switchToEditMode() {
+    $("#detailModal .view-mode").addClass("d-none");
+    $("#detailModal .edit-mode").removeClass("d-none");
+    $("#editModeBtn").addClass("active");
+    $("#viewModeBtn").removeClass("active");
+  }
+  $("#viewModeBtn").on("click", switchToViewMode);
+  $("#editModeBtn").on("click", switchToEditMode);
+  $("#detailModal").on("hidden.bs.modal", switchToViewMode);
+
+  // ========= フィルタ =========
+  $("#statusFilter").on("change", function () {
+    currentFilterStatus = $(this).val();
+    currentPage = 1;
+    renderTable();
+  });
+
+  // ========= ページクリック =========
+  $(document).on("click", "#pager a.page-link", function (e) {
+    e.preventDefault();
+    const page = Number($(this).data("page"));
+    if (!Number.isFinite(page)) return;
+
+    const total = getFilteredRecords().length;
+    const usePager = total >= PAGINATION_THRESHOLD;
+    const totalPages = usePager ? Math.ceil(total / PAGE_SIZE) : 1;
+
+    currentPage = clampPage(page, totalPages);
+    renderTable();
+
+    // テーブル領域の先頭へ戻す
+    $(".table-wrap").scrollTop(0);
+  });
+
+  // ========= レコード取得 =========
+  function findById(id) {
+    return records.find(r => String(r.id) === String(id)) || null;
+  }
+
+  // ========= 詳細ボタン：モーダルへ反映 =========
+  $(document).on("click", ".js-open-modal", function () {
+    const id = $(this).data("id");
+    const r = findById(id);
+    if (!r) return;
+
+    // view
+    $("#viewId").text(r.id ?? "-");
+    $("#viewName").text(r.name ?? "-");
+    $("#viewStatus").text(r.status ?? "-");
+    $("#viewUpdated").text(r.updated ?? "-");
+    $("#viewDept").text(r.dept ?? "-");
+    $("#viewEmail").text(r.email ?? "-");
+    $("#viewRole").text(r.role ?? "-");
+
+    // edit
+    $("#editId").val(r.id ?? "");
+    $("#editName").val(r.name ?? "");
+    $("#editStatus").val(r.status ?? "有効");
+    $("#editUpdated").val(r.updated ?? "");
+    $("#editDept").val(r.dept ?? "");
+    $("#editEmail").val(r.email ?? "");
+    $("#editRole").val(r.role ?? "一般");
+
+    switchToViewMode();
+  });
+
+  // ========= 申請ボタン（デモ） =========
+  $(document).on("click", ".js-apply", function () {
+    const id = $(this).data("id");
+    alert(`申請しました（デモ）: ID=${id}`);
+  });
+
+  // ========= 保存（デモ：records更新→再描画） =========
+  $("#detailForm").on("submit", function (e) {
+    e.preventDefault();
+
+    const id = $("#editId").val();
+    const r = findById(id);
+    if (!r) return;
+
+    r.name = $("#editName").val();
+    r.status = $("#editStatus").val();
+    r.updated = $("#editUpdated").val();
+    r.dept = $("#editDept").val();
+    r.email = $("#editEmail").val();
+    r.role = $("#editRole").val();
+
+    // view側を更新して閲覧へ
+    $("#viewName").text(r.name || "-");
+    $("#viewStatus").text(r.status || "-");
+    $("#viewUpdated").text(r.updated || "-");
+    $("#viewDept").text(r.dept || "-");
+    $("#viewEmail").text(r.email || "-");
+    $("#viewRole").text(r.role || "-");
+
+    switchToViewMode();
+    renderTable();
+  });
+
+  // ========= ダミー追加（ページング確認用） =========
+  $("#addDummyRowBtn").on("click", function () {
+    const next = String((records.reduce((m, r) => Math.max(m, Number(r.id)), 0) || 100) + 1);
+    records.push({
+      id: next,
+      name: `追加ユーザー${next}`,
+      status: "有効",
+      updated: "2025-12-19",
+      dept: "開発",
+      email: `added${next}@example.com`,
+      role: "一般",
+      note: "-",
+      tag: "Z",
+      a: `A${next}`,
+      b: `B${next}`
+    });
+    renderTable();
+  });
+
+  // 初期描画
+  renderTable();
+});
+</script>
 
 </body>
 </html>
