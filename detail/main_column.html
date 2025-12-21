@@ -3,14 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bootstrap + jQuery（列プリセット絞り込み・操作列固定・スクロール・100件超ページネーション）</title>
+  <title>Bootstrap + jQuery（手動列プリセット・配列オブジェクト表示・詳細は表示中列のみ）</title>
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    .form-control[readonly] { cursor: not-allowed; }
-
     /* 横・縦スクロール */
     .table-wrap{
       max-height: 60vh;
@@ -41,8 +39,20 @@
       width: 100%;
     }
 
-    /* 表示が詰まっても見た目維持（任意） */
     td, th { overflow: hidden; text-overflow: ellipsis; }
+
+    /* モーダルの「編集不可」を分かりやすく */
+    .form-control[readonly] { cursor: not-allowed; }
+
+    /* 詳細モーダル内のグリッド */
+    .kv-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: .5rem 1rem;
+      align-items: center;
+    }
+    .kv-row + .kv-row { margin-top: .75rem; }
+    .kv-key { font-weight: 600; }
   </style>
 </head>
 <body class="bg-light">
@@ -54,18 +64,11 @@
     <h1 class="h4 m-0">トップ画面</h1>
 
     <div class="d-flex flex-wrap gap-2 align-items-center">
-      <!-- 表示列プリセット -->
+      <!-- 列プリセット：全件/偶数/奇数 -->
       <select class="form-select form-select-sm w-auto" id="columnPreset">
-        <option value="default" selected>標準</option>
-        <option value="basic">基本（最小）</option>
-        <option value="audit">監査向け</option>
-      </select>
-
-      <!-- ステータス絞り込み -->
-      <select class="form-select form-select-sm w-auto" id="statusFilter">
-        <option value="">すべて</option>
-        <option value="有効">有効</option>
-        <option value="停止">停止</option>
+        <option value="all" selected>全件</option>
+        <option value="even">偶数</option>
+        <option value="odd">奇数</option>
       </select>
 
       <button class="btn btn-primary btn-sm" type="button" id="addDummyRowBtn">ダミー追加</button>
@@ -78,42 +81,12 @@
 
       <div class="table-wrap">
         <table class="table table-bordered table-hover align-middle mb-0 fixed-table" id="mainTable">
-          <!-- colgroup にも data-col を付ける（列非表示時に幅が残らない） -->
-          <colgroup>
-            <col data-col="action" style="width:160px">
-            <col data-col="id"     style="width:80px">
-            <col data-col="name"   style="width:180px">
-            <col data-col="status" style="width:90px">
-            <col data-col="updated"style="width:130px">
-            <col data-col="dept"   style="width:160px">
-            <col data-col="email"  style="width:200px">
-            <col data-col="role"   style="width:120px">
-            <col data-col="note"   style="width:200px">
-            <col data-col="tag"    style="width:140px">
-            <col data-col="a"      style="width:160px">
-            <col data-col="b"      style="width:160px">
-          </colgroup>
-
+          <!-- colgroup / thead はJSで生成 -->
+          <colgroup id="colgroup"></colgroup>
           <thead class="table-light">
-            <tr>
-              <th class="col-action" data-col="action">操作</th>
-              <th data-col="id">ID</th>
-              <th data-col="name">名前</th>
-              <th data-col="status">状態</th>
-              <th data-col="updated">更新日</th>
-              <th data-col="dept">部署</th>
-              <th data-col="email">メール</th>
-              <th data-col="role">権限</th>
-              <th data-col="note">備考</th>
-              <th data-col="tag">タグ</th>
-              <th data-col="a">項目A</th>
-              <th data-col="b">項目B</th>
-            </tr>
+            <tr id="theadRow"></tr>
           </thead>
-
-          <tbody id="mainTbody">
-            <!-- JSで描画 -->
-          </tbody>
+          <tbody id="mainTbody"></tbody>
         </table>
       </div>
 
@@ -130,7 +103,7 @@
   </div>
 </div>
 
-<!-- Modal（閲覧/編集） -->
+<!-- Modal（詳細：表示中の列のみ表示） -->
 <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -145,76 +118,13 @@
       </div>
 
       <div class="modal-body">
-        <form id="detailForm">
-
-          <div class="row mb-3">
-            <label class="col-sm-3 col-form-label">ID</label>
-            <div class="col-sm-9">
-              <p class="form-control-plaintext view-mode" id="viewId">-</p>
-              <input type="text" class="form-control edit-mode d-none bg-light text-muted" id="editId" readonly tabindex="-1">
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <label class="col-sm-3 col-form-label">名前</label>
-            <div class="col-sm-9">
-              <p class="form-control-plaintext view-mode" id="viewName">-</p>
-              <input type="text" class="form-control edit-mode d-none" id="editName">
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <label class="col-sm-3 col-form-label">状態</label>
-            <div class="col-sm-9">
-              <p class="form-control-plaintext view-mode" id="viewStatus">-</p>
-              <select class="form-select edit-mode d-none" id="editStatus">
-                <option value="有効">有効</option>
-                <option value="停止">停止</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <label class="col-sm-3 col-form-label">更新日</label>
-            <div class="col-sm-9">
-              <p class="form-control-plaintext view-mode" id="viewUpdated">-</p>
-              <input type="date" class="form-control edit-mode d-none" id="editUpdated">
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <label class="col-sm-3 col-form-label">部署</label>
-            <div class="col-sm-9">
-              <p class="form-control-plaintext view-mode" id="viewDept">-</p>
-              <input type="text" class="form-control edit-mode d-none" id="editDept">
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <label class="col-sm-3 col-form-label">メール</label>
-            <div class="col-sm-9">
-              <p class="form-control-plaintext view-mode" id="viewEmail">-</p>
-              <input type="email" class="form-control edit-mode d-none" id="editEmail">
-            </div>
-          </div>
-
-          <div class="row mb-0">
-            <label class="col-sm-3 col-form-label">権限</label>
-            <div class="col-sm-9">
-              <p class="form-control-plaintext view-mode" id="viewRole">-</p>
-              <select class="form-select edit-mode d-none" id="editRole">
-                <option value="一般">一般</option>
-                <option value="管理者">管理者</option>
-              </select>
-            </div>
-          </div>
-
-        </form>
+        <!-- ここを現在の列プリセットに応じて動的生成 -->
+        <div id="detailContainer" class="vstack gap-3"></div>
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">閉じる</button>
-        <button type="submit" class="btn btn-success edit-mode d-none" form="detailForm">保存</button>
+        <button type="button" class="btn btn-success edit-mode d-none" id="saveBtn">保存</button>
       </div>
 
     </div>
@@ -228,71 +138,119 @@
 
 <script>
 $(function () {
-  // ===== 列プリセット定義 =====
+  // =============================
+  // 1) 入力データ例：配列内オブジェクト（1オブジェクト=1行）
+  //    ※ 実運用ではAPIからこの形で受け取って records に代入する想定
+  // =============================
+  const TEST_COL_COUNT = 12; // テスト1〜テスト12
+
+  let records = generateRecords(230); // 例：230件（ページネーション動作確認用）
+
+  // 例：records の形（参考）
+  // records = [
+  //   { test1: "値1-1", test2: "値2-1", ... test12:"値12-1" },
+  //   { test1: "値1-2", test2: "値2-2", ... },
+  // ];
+
+  function generateRecords(n) {
+    const arr = [];
+    for (let row = 1; row <= n; row++) {
+      const obj = {};
+      for (let c = 1; c <= TEST_COL_COUNT; c++) {
+        obj[`test${c}`] = `値${c}-${row}`;
+      }
+      arr.push(obj);
+    }
+    return arr;
+  }
+
+  // =============================
+  // 2) 列定義（見出しは「テスト1、テスト2、…」）
+  // =============================
+  const COLS = [
+    { key: "action", label: "操作", width: 160, isAction: true },
+    ...Array.from({length: TEST_COL_COUNT}, (_, i) => ({
+      key: `test${i+1}`,
+      label: `テスト${i+1}`,
+      width: (i === 0 ? 130 : 160) // テスト1は少し狭め例
+    }))
+  ];
+
+  // =============================
+  // 3) 列プリセット（手動で設定）
+  //    even/odd を自動計算ではなく、ここで手動指定
+  // =============================
   const COLUMN_PRESETS = {
-    default: ["action","id","name","status","updated","dept","email","role","note","tag","a","b"],
-    basic:   ["action","id","name","status","updated"],
-    audit:   ["action","id","name","status","updated","email","role","note"]
+    all:  ["action","test1","test2","test3","test4","test5","test6","test7","test8","test9","test10","test11","test12"],
+
+    // ★手動：偶数（例：テスト2,4,6,8,10,12だけ表示）
+    even: ["action","test2","test4","test6","test8","test10","test12"],
+
+    // ★手動：奇数（例：テスト1,3,5,7,9,11だけ表示）
+    odd:  ["action","test1","test3","test5","test7","test9","test11"]
   };
 
-  // ===== ページング設定 =====
+  // =============================
+  // 4) ページング設定
+  // =============================
   const PAGINATION_THRESHOLD = 100; // 100件以上でページネーション表示
   const PAGE_SIZE = 50;
 
-  // ===== データ（実運用ではAPI結果をrecordsへ） =====
-  let records = [];
-  function seed() {
-    const base = [
-      { id:"101", name:"田中 太郎", status:"有効", updated:"2025-12-17", dept:"開発", email:"taro@example.com", role:"一般", note:"-", tag:"A", a:"A1", b:"B1" },
-      { id:"102", name:"佐藤 花子", status:"停止", updated:"2025-12-10", dept:"企画", email:"hanako@example.com", role:"管理者", note:"-", tag:"B", a:"A2", b:"B2" },
-      { id:"103", name:"鈴木 次郎", status:"有効", updated:"2025-11-30", dept:"品質", email:"jiro@example.com", role:"一般", note:"-", tag:"C", a:"A3", b:"B3" }
-    ];
-    records = base.slice();
-
-    // 動作確認用（100件超）
-    for (let i = 104; i <= 230; i++) {
-      records.push({
-        id: String(i),
-        name: `ユーザー${i}`,
-        status: (i % 3 === 0) ? "停止" : "有効",
-        updated: "2025-12-01",
-        dept: (i % 2 === 0) ? "開発" : "企画",
-        email: `user${i}@example.com`,
-        role: (i % 10 === 0) ? "管理者" : "一般",
-        note: (i % 7 === 0) ? "メモあり" : "-",
-        tag: (i % 5 === 0) ? "X" : "Y",
-        a: `A${i}`,
-        b: `B${i}`
-      });
-    }
-  }
-  seed();
-
-  // ===== 状態 =====
+  // =============================
+  // 5) 状態
+  // =============================
   let currentPage = 1;
-  let currentFilterStatus = "";
-  let currentPreset = $("#columnPreset").val() || "default";
+  let currentPreset = $("#columnPreset").val() || "all";
+  let currentRowIndex = null; // モーダルで開いている行（recordsのindex）
 
-  // ===== ユーティリティ =====
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  // =============================
+  // 6) テーブル構造（colgroup / thead）生成
+  // =============================
+  function buildTableSkeleton() {
+    const $cg = $("#colgroup").empty();
+    const $tr = $("#theadRow").empty();
+
+    COLS.forEach(col => {
+      $cg.append(`<col data-col="${col.key}" style="width:${col.width}px">`);
+
+      if (col.isAction) {
+        $tr.append(`<th class="col-action" data-col="${col.key}">${col.label}</th>`);
+      } else {
+        $tr.append(`<th data-col="${col.key}">${col.label}</th>`);
+      }
+    });
   }
 
-  function badgeHtml(status) {
-    const cls = (status === "有効") ? "text-bg-success" : "text-bg-secondary";
-    return `<span class="badge ${cls}">${status}</span>`;
+  // =============================
+  // 7) 列プリセット適用（thead/tbody/colgroup）
+  // =============================
+  function applyColumnPreset(presetKey) {
+    const list = COLUMN_PRESETS[presetKey] || COLUMN_PRESETS.all;
+    const showCols = new Set(list);
+
+    $("#mainTable [data-col]").each(function () {
+      const key = $(this).data("col");
+      $(this).toggle(showCols.has(key));
+    });
+
+    $("#mainTable colgroup col[data-col]").each(function () {
+      const key = $(this).data("col");
+      $(this).toggle(showCols.has(key));
+    });
   }
 
-  function getFilteredRecords() {
-    if (!currentFilterStatus) return records.slice();
-    return records.filter(r => r.status === currentFilterStatus);
+  // 現在表示されている列キー（action以外）を返す
+  function getVisibleDataKeys() {
+    const list = COLUMN_PRESETS[currentPreset] || COLUMN_PRESETS.all;
+    return list.filter(k => k !== "action");
   }
 
+  // key -> label
+  const colLabelMap = Object.fromEntries(COLS.map(c => [c.key, c.label]));
+
+  // =============================
+  // 8) ページング UI
+  // =============================
   function clampPage(page, totalPages) {
     if (totalPages <= 0) return 1;
     return Math.min(Math.max(1, page), totalPages);
@@ -316,91 +274,6 @@ $(function () {
 
     out.push(total);
     return out;
-  }
-
-  // ===== 列プリセット適用（thead/tbody/colgroup まとめて制御） =====
-  function applyColumnPreset(presetKey) {
-    const list = COLUMN_PRESETS[presetKey] || COLUMN_PRESETS.default;
-    const showCols = new Set(list);
-
-    // th/td（data-colが付いたもの）
-    $("#mainTable [data-col]").each(function () {
-      const key = $(this).data("col");
-      $(this).toggle(showCols.has(key));
-    });
-
-    // colgroup（幅の残骸対策）
-    $("#mainTable colgroup col[data-col]").each(function () {
-      const key = $(this).data("col");
-      $(this).toggle(showCols.has(key));
-    });
-  }
-
-  // ===== テーブル描画 =====
-  function renderTable() {
-    const filtered = getFilteredRecords();
-    const usePager = filtered.length >= PAGINATION_THRESHOLD;
-
-    const totalPages = usePager ? Math.ceil(filtered.length / PAGE_SIZE) : 1;
-    currentPage = clampPage(currentPage, totalPages);
-
-    const start = usePager ? (currentPage - 1) * PAGE_SIZE : 0;
-    const end = usePager ? start + PAGE_SIZE : filtered.length;
-    const pageItems = filtered.slice(start, end);
-
-    // 表示件数
-    const from = filtered.length ? (start + 1) : 0;
-    const to = filtered.length ? Math.min(end, filtered.length) : 0;
-    $("#resultInfo").text(`件数: ${filtered.length}件（表示: ${from}〜${to}）`);
-
-    // tbody描画（tdにも data-col を付与）
-    const rowsHtml = pageItems.map(r => `
-      <tr data-status="${r.status}">
-        <td class="col-action" data-col="action">
-          <div class="action-btns">
-            <button
-              type="button"
-              class="btn btn-outline-primary btn-sm js-open-modal"
-              data-bs-toggle="modal"
-              data-bs-target="#detailModal"
-              data-id="${r.id}"
-            >詳細</button>
-
-            <button
-              type="button"
-              class="btn btn-outline-success btn-sm js-apply"
-              data-id="${r.id}"
-            >申請</button>
-          </div>
-        </td>
-
-        <td data-col="id">${r.id}</td>
-        <td data-col="name" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</td>
-        <td data-col="status">${badgeHtml(r.status)}</td>
-        <td data-col="updated">${r.updated || "-"}</td>
-        <td data-col="dept" title="${escapeHtml(r.dept||"-")}">${escapeHtml(r.dept || "-")}</td>
-        <td data-col="email" title="${escapeHtml(r.email||"-")}">${escapeHtml(r.email || "-")}</td>
-        <td data-col="role">${escapeHtml(r.role || "-")}</td>
-        <td data-col="note" title="${escapeHtml(r.note||"-")}">${escapeHtml(r.note || "-")}</td>
-        <td data-col="tag">${escapeHtml(r.tag || "-")}</td>
-        <td data-col="a">${escapeHtml(r.a || "-")}</td>
-        <td data-col="b">${escapeHtml(r.b || "-")}</td>
-      </tr>
-    `).join("");
-
-    $("#mainTbody").html(rowsHtml);
-
-    // ページャー
-    if (usePager) {
-      $("#pagerWrap").removeClass("d-none");
-      renderPager(totalPages);
-    } else {
-      $("#pagerWrap").addClass("d-none");
-      $("#pager").empty();
-    }
-
-    // ★ tbody再描画後に列プリセットを必ず適用
-    applyColumnPreset(currentPreset);
   }
 
   function renderPager(totalPages) {
@@ -435,50 +308,86 @@ $(function () {
     $("#pager").html(li.join(""));
   }
 
-  // ===== イベント：列プリセット変更 =====
-  $("#columnPreset").on("change", function () {
-    currentPreset = $(this).val();
-    applyColumnPreset(currentPreset);
-  });
-
-  // ===== イベント：ステータス絞り込み =====
-  $("#statusFilter").on("change", function () {
-    currentFilterStatus = $(this).val();
-    currentPage = 1;
-    renderTable();
-  });
-
-  // ===== イベント：ページクリック =====
-  $(document).on("click", "#pager a.page-link", function (e) {
-    e.preventDefault();
-
-    const page = Number($(this).data("page"));
-    if (!Number.isFinite(page)) return;
-
-    const total = getFilteredRecords().length;
+  // =============================
+  // 9) テーブル描画（records: 配列オブジェクト）
+  // =============================
+  function renderTable() {
+    const total = records.length;
     const usePager = total >= PAGINATION_THRESHOLD;
+
     const totalPages = usePager ? Math.ceil(total / PAGE_SIZE) : 1;
+    currentPage = clampPage(currentPage, totalPages);
 
-    currentPage = clampPage(page, totalPages);
-    renderTable();
-    $(".table-wrap").scrollTop(0);
-  });
+    const start = usePager ? (currentPage - 1) * PAGE_SIZE : 0;
+    const end = usePager ? start + PAGE_SIZE : total;
+    const pageItems = records.slice(start, end);
 
-  // ===== レコード取得 =====
-  function findById(id) {
-    return records.find(r => String(r.id) === String(id)) || null;
+    const from = total ? (start + 1) : 0;
+    const to = total ? Math.min(end, total) : 0;
+    $("#resultInfo").text(`件数: ${total}件（表示: ${from}〜${to}）`);
+
+    const rowsHtml = pageItems.map((obj, idxInPage) => {
+      const globalIndex = start + idxInPage;
+
+      const tds = [];
+
+      // 操作列（詳細/申請）
+      tds.push(`
+        <td class="col-action" data-col="action">
+          <div class="action-btns">
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm js-open-modal"
+              data-bs-toggle="modal"
+              data-bs-target="#detailModal"
+              data-index="${globalIndex}"
+            >詳細</button>
+
+            <button
+              type="button"
+              class="btn btn-outline-success btn-sm js-apply"
+              data-index="${globalIndex}"
+            >申請</button>
+          </div>
+        </td>
+      `);
+
+      // テスト列
+      for (let c = 1; c <= TEST_COL_COUNT; c++) {
+        const key = `test${c}`;
+        const v = obj[key] ?? "-";
+        tds.push(`<td data-col="${key}" title="${v}">${v}</td>`);
+      }
+
+      return `<tr>${tds.join("")}</tr>`;
+    }).join("");
+
+    $("#mainTbody").html(rowsHtml);
+
+    if (usePager) {
+      $("#pagerWrap").removeClass("d-none");
+      renderPager(totalPages);
+    } else {
+      $("#pagerWrap").addClass("d-none");
+      $("#pager").empty();
+    }
+
+    // tbody再描画後に列プリセットを必ず適用
+    applyColumnPreset(currentPreset);
   }
 
-  // ===== モーダル：モード切替（上部） =====
+  // =============================
+  // 10) モーダル：閲覧/編集切替（上部）
+  // =============================
   function switchToViewMode() {
-    $("#detailModal .edit-mode").addClass("d-none");
-    $("#detailModal .view-mode").removeClass("d-none");
+    $(".edit-mode").addClass("d-none");
+    $(".view-mode").removeClass("d-none");
     $("#viewModeBtn").addClass("active");
     $("#editModeBtn").removeClass("active");
   }
   function switchToEditMode() {
-    $("#detailModal .view-mode").addClass("d-none");
-    $("#detailModal .edit-mode").removeClass("d-none");
+    $(".view-mode").addClass("d-none");
+    $(".edit-mode").removeClass("d-none");
     $("#editModeBtn").addClass("active");
     $("#viewModeBtn").removeClass("active");
   }
@@ -486,86 +395,131 @@ $(function () {
   $("#editModeBtn").on("click", switchToEditMode);
   $("#detailModal").on("hidden.bs.modal", switchToViewMode);
 
-  // ===== 詳細ボタン：モーダルへ反映 =====
-  $(document).on("click", ".js-open-modal", function () {
-    const id = $(this).data("id");
-    const r = findById(id);
-    if (!r) return;
+  // =============================
+  // 11) 詳細モーダル：現在の列プリセットに応じて表示する項目を生成
+  //     - 閲覧用(p) + 編集用(input) を両方生成して切替
+  //     - テスト1は編集不可（readonly + 色変更）
+  // =============================
+  function buildDetailModalForRow(rowObj) {
+    const visibleKeys = getVisibleDataKeys(); // action 제외
+    const $container = $("#detailContainer").empty();
 
-    // view
-    $("#viewId").text(r.id ?? "-");
-    $("#viewName").text(r.name ?? "-");
-    $("#viewStatus").text(r.status ?? "-");
-    $("#viewUpdated").text(r.updated ?? "-");
-    $("#viewDept").text(r.dept ?? "-");
-    $("#viewEmail").text(r.email ?? "-");
-    $("#viewRole").text(r.role ?? "-");
+    visibleKeys.forEach(key => {
+      const label = colLabelMap[key] || key;
+      const value = rowObj[key] ?? "-";
 
-    // edit
-    $("#editId").val(r.id ?? "");
-    $("#editName").val(r.name ?? "");
-    $("#editStatus").val(r.status ?? "有効");
-    $("#editUpdated").val(r.updated ?? "");
-    $("#editDept").val(r.dept ?? "");
-    $("#editEmail").val(r.email ?? "");
-    $("#editRole").val(r.role ?? "一般");
+      const isReadonly = (key === "test1"); // テスト1は編集不可
+      const readonlyAttrs = isReadonly ? 'readonly tabindex="-1"' : "";
+      const readonlyClass = isReadonly ? "bg-light text-muted" : "";
 
-    switchToViewMode();
-  });
+      const block = `
+        <div class="kv-row" data-key="${key}">
+          <div class="kv-key">${label}</div>
 
-  // ===== 申請ボタン（デモ） =====
-  $(document).on("click", ".js-apply", function () {
-    const id = $(this).data("id");
-    alert(`申請しました（デモ）: ID=${id}`);
-  });
-
-  // ===== 保存（デモ：records更新→再描画） =====
-  $("#detailForm").on("submit", function (e) {
-    e.preventDefault();
-
-    const id = $("#editId").val();
-    const r = findById(id);
-    if (!r) return;
-
-    r.name = $("#editName").val();
-    r.status = $("#editStatus").val();
-    r.updated = $("#editUpdated").val();
-    r.dept = $("#editDept").val();
-    r.email = $("#editEmail").val();
-    r.role = $("#editRole").val();
-
-    // view側更新
-    $("#viewName").text(r.name || "-");
-    $("#viewStatus").text(r.status || "-");
-    $("#viewUpdated").text(r.updated || "-");
-    $("#viewDept").text(r.dept || "-");
-    $("#viewEmail").text(r.email || "-");
-    $("#viewRole").text(r.role || "-");
-
-    switchToViewMode();
-    renderTable();
-  });
-
-  // ===== ダミー追加 =====
-  $("#addDummyRowBtn").on("click", function () {
-    const next = String((records.reduce((m, r) => Math.max(m, Number(r.id)), 0) || 100) + 1);
-    records.push({
-      id: next,
-      name: `追加ユーザー${next}`,
-      status: "有効",
-      updated: "2025-12-19",
-      dept: "開発",
-      email: `added${next}@example.com`,
-      role: "一般",
-      note: "-",
-      tag: "Z",
-      a: `A${next}`,
-      b: `B${next}`
+          <div>
+            <p class="form-control-plaintext m-0 view-mode" id="view_${key}">${value}</p>
+            <input
+              type="text"
+              class="form-control edit-mode d-none ${readonlyClass}"
+              id="edit_${key}"
+              value="${escapeAttr(value)}"
+              ${readonlyAttrs}
+            >
+          </div>
+        </div>
+      `;
+      $container.append(block);
     });
+  }
+
+  function escapeAttr(s) {
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // =============================
+  // 12) イベント
+  // =============================
+
+  // 列プリセット変更（テーブルもモーダル表示項目もこれに追従）
+  $("#columnPreset").on("change", function () {
+    currentPreset = $(this).val();
+    applyColumnPreset(currentPreset);
+
+    // モーダルを開いたまま変更されたら、表示項目も作り直す（任意）
+    if ($("#detailModal").hasClass("show") && currentRowIndex != null) {
+      buildDetailModalForRow(records[currentRowIndex]);
+      switchToViewMode();
+    }
+  });
+
+  // ページクリック
+  $(document).on("click", "#pager a.page-link", function (e) {
+    e.preventDefault();
+    const page = Number($(this).data("page"));
+    if (!Number.isFinite(page)) return;
+
+    const totalPages = Math.ceil(records.length / PAGE_SIZE);
+    currentPage = clampPage(page, totalPages);
+    renderTable();
+    $(".table-wrap").scrollTop(0);
+  });
+
+  // 詳細
+  $(document).on("click", ".js-open-modal", function () {
+    const idx = Number($(this).data("index"));
+    if (!Number.isFinite(idx) || !records[idx]) return;
+
+    currentRowIndex = idx;
+    buildDetailModalForRow(records[idx]);
+    switchToViewMode();
+  });
+
+  // 申請（デモ）
+  $(document).on("click", ".js-apply", function () {
+    const idx = Number($(this).data("index"));
+    if (!Number.isFinite(idx) || !records[idx]) return;
+    alert(`申請しました（デモ）: 行=${idx+1}, テスト1=${records[idx].test1}`);
+  });
+
+  // 保存：表示中の列だけフォームから読み取ってrecordsへ反映
+  $("#saveBtn").on("click", function () {
+    if (currentRowIndex == null || !records[currentRowIndex]) return;
+
+    const row = records[currentRowIndex];
+    const visibleKeys = getVisibleDataKeys();
+
+    visibleKeys.forEach(key => {
+      if (key === "test1") return; // 編集不可
+      const v = $(`#edit_${key}`).val();
+      row[key] = v;
+      $(`#view_${key}`).text(v || "-");
+    });
+
+    // 一覧にも反映
+    renderTable();
+    switchToViewMode();
+  });
+
+  // ダミー追加（配列オブジェクトに1行追加）
+  $("#addDummyRowBtn").on("click", function () {
+    const nextRowNo = records.length + 1;
+    const obj = {};
+    for (let c = 1; c <= TEST_COL_COUNT; c++) {
+      obj[`test${c}`] = `値${c}-${nextRowNo}`;
+    }
+    records.push(obj);
     renderTable();
   });
 
-  // 初期描画
+  // =============================
+  // 13) 初期化
+  // =============================
+  buildTableSkeleton();
   renderTable();
   applyColumnPreset(currentPreset);
 });
