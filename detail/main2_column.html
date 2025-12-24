@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bootstrap + jQuery（手動列プリセット・詳細連動・編集UI・下部編集テーブル）</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    /* 横・縦スクロール */
+    .table-wrap{
+      max-height: 60vh;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    /* 列幅制御のため固定レイアウト */
+    table.fixed-table{
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    /* 操作カラム固定幅 */
+    th.col-action, td.col-action{
+      width: 160px;
+      min-width: 160px;
+      max-width: 160px;
+      white-space: nowrap;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .action-btns{
+      display: inline-flex;
+      gap: .25rem;
+      justify-content: center;
+      width: 100%;
+    }
+
+    /* 省略表示 */
+    td, th { overflow: hidden; text-overflow: ellipsis; }
+
+    /* readonly */
+    .form-control[readonly] { cursor: not-allowed; }
+
+    /* 詳細画面下部テーブルの編集強調 */
+    .edited-cell {
+      outline: 2px solid rgba(13, 110, 253, .6); /* Bootstrap primary 風 */
+      outline-offset: -2px;
+      background: rgba(13, 110, 253, .08);
+    }
+
+    /* 下部テーブル：入力の見た目をセルに馴染ませる */
+    .grid-input {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: .25rem .5rem;
+    }
+    .grid-input:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h4 m-0">トップ画面</h1>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <!-- 列プリセット（手動設定） -->
+      <select class="form-select form-select-sm w-auto" id="columnPreset">
+        <option value="all" selected>全件</option>
+        <option value="even">偶数</option>
+        <option value="odd">奇数</option>
+      </select>
+
+      <button class="btn btn-primary btn-sm" type="button" id="addRowBtn">行追加（デモ）</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <div class="table-wrap">
+        <table class="table table-bordered table-hover align-middle mb-0 fixed-table" id="mainTable">
+          <colgroup id="colgroup"><!-- JSで生成 --></colgroup>
+
+          <thead class="table-light">
+            <tr id="theadRow"><!-- JSで生成 --></tr>
+          </thead>
+
+          <tbody id="mainTbody"><!-- JSで描画 --></tbody>
+        </table>
+      </div>
+
+      <!-- ページネーション（100件以上のときだけ表示） -->
+      <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3">
+        <div class="text-muted small" id="resultInfo">-</div>
+
+        <nav aria-label="ページネーション" id="pagerWrap" class="d-none">
+          <ul class="pagination pagination-sm mb-0" id="pager"></ul>
+        </nav>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <!-- header：上部で閲覧/編集切替 -->
+      <div class="modal-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <h5 class="modal-title m-0">詳細</h5>
+          <span class="badge text-bg-light text-dark" id="detailRowId">-</span>
+        </div>
+
+        <div class="btn-group btn-group-sm" role="group" aria-label="閲覧編集切り替え">
+          <button type="button" class="btn btn-outline-secondary active" id="viewModeBtn">閲覧</button>
+          <button type="button" class="btn btn-outline-secondary" id="editModeBtn">編集</button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <!-- 上段：選択中プリセットの「表示カラム」だけ出す領域 -->
+        <div class="mb-3">
+          <div class="fw-semibold mb-2">表示項目</div>
+          <form id="detailForm">
+            <div id="detailFields"><!-- JSで生成 --></div>
+          </form>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- 下段：意味を持たない編集テーブル -->
+        <div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="fw-semibold">追加テーブル</div>
+            <div class="text-muted small">※編集したセルは強調表示されます</div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle mb-0" id="detailGridTable">
+              <thead class="table-light" id="detailGridHead"><!-- JS --></thead>
+              <tbody id="detailGridBody"><!-- JS --></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">閉じる</button>
+        <button type="submit" class="btn btn-success edit-mode d-none" form="detailForm" id="saveDetailBtn">保存</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(function () {
+  // ========= 設定 =========
+  const PAGINATION_THRESHOLD = 100; // 100件以上でページネーション表示
+  const PAGE_SIZE = 50;
+
+  // テスト列数
+  const TEST_COL_COUNT = 12; // テスト1〜テスト12
+  const TEST_KEYS = Array.from({length: TEST_COL_COUNT}, (_, i) => `test${i+1}`);
+  const ALL_COL_KEYS = ["action"].concat(TEST_KEYS);
+
+  // ========= 列プリセット（★手動で設定） =========
+  // ※ここを「手動で」好きな組み合わせに変えられます
+  const COLUMN_PRESETS = {
+    all:  ["action","test1","test2","test3","test4","test5","test6","test7","test8","test9","test10","test11","test12"],
+    even: ["action","test2","test4","test6","test8","test10","test12"],  // 手動
+    odd:  ["action","test1","test3","test5","test7","test9","test11"]   // 手動
+  };
+
+  // ========= データ（配列内にオブジェクト：1オブジェクト=1行） =========
+  // test1 も「値1-1」形式にしています
+  // test2: "テスト2+" or "テスト2-"
+  // test3/test4: boolean（チェックボックス）
+  // detailGrid: 意味を持たないテーブルデータ
+  let records = [];
+
+  function makeGrid(rowIndex) {
+    // 意味を持たない列名/値（例）
+    const cols = ["列A","列B","列C","列D"];
+    const rows = [];
+    for (let r = 1; r <= 5; r++) {
+      rows.push({
+        c1: `R${r}-${rowIndex}-A`,
+        c2: `R${r}-${rowIndex}-B`,
+        c3: `R${r}-${rowIndex}-C`,
+        c4: `R${r}-${rowIndex}-D`
+      });
+    }
+    return { cols, rows };
+  }
+
+  function seed() {
+    records = [];
+    for (let i = 1; i <= 230; i++) {
+      const obj = {
+        id: i, // 内部キー（表示には使わない）
+        test1: `値1-${i}`,
+        test2: (i % 2 === 0) ? "テスト2+" : "テスト2-",
+        test3: (i % 3 === 0),
+        test4: (i % 4 === 0),
+        test5: `値5-${i}`,
+        test6: `値6-${i}`,
+        test7: `値7-${i}`,
+        test8: `値8-${i}`,
+        test9: `値9-${i}`,
+        test10:`値10-${i}`,
+        test11:`値11-${i}`,
+        test12:`値12-${i}`,
+        detailGrid: makeGrid(i)
+      };
+      records.push(obj);
+    }
+  }
+  seed();
+
+  // ========= 状態 =========
+  let currentPage = 1;
+  let currentPreset = $("#columnPreset").val() || "all";
+  let currentDetailId = null; // records[i].id
+
+  // ========= ユーティリティ =========
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function clampPage(page, totalPages) {
+    if (totalPages <= 0) return 1;
+    return Math.min(Math.max(1, page), totalPages);
+  }
+
+  function buildPageList(current, total, maxNumbers) {
+    if (total <= maxNumbers) return Array.from({length: total}, (_, i) => i + 1);
+
+    const out = [];
+    const mid = Math.floor((maxNumbers - 3) / 2);
+
+    out.push(1);
+
+    let left = Math.max(2, current - mid);
+    let right = Math.min(total - 1, current + mid);
+
+    if (left > 2) out.push("...");
+    for (let i = left; i <= right; i++) out.push(i);
+    if (right < total - 1) out.push("...");
+
+    out.push(total);
+    return out;
+  }
+
+  function findByInternalId(id) {
+    return records.find(r => Number(r.id) === Number(id)) || null;
+  }
+
+  // ========= 列生成（colgroup/thead） =========
+  function buildColumns() {
+    const $cg = $("#colgroup").empty();
+    const $tr = $("#theadRow").empty();
+
+    // 操作列
+    $cg.append(`<col data-col="action" style="width:160px">`);
+    $tr.append(`<th class="col-action" data-col="action">操作</th>`);
+
+    // テスト列：テスト1..N
+    for (let i = 1; i <= TEST_COL_COUNT; i++) {
+      const key = `test${i}`;
+      const w = (i === 1) ? 120 : 160;
+      $cg.append(`<col data-col="${key}" style="width:${w}px">`);
+      $tr.append(`<th data-col="${key}">テスト${i}</th>`);
+    }
+  }
+
+  // ========= 列プリセット適用（thead/tbody/colgroup） =========
+  function getPresetCols(presetKey) {
+    return COLUMN_PRESETS[presetKey] || COLUMN_PRESETS.all;
+  }
+
+  function applyColumnPreset(presetKey) {
+    const showCols = new Set(getPresetCols(presetKey));
+
+    $("#mainTable [data-col]").each(function () {
+      const key = $(this).data("col");
+      $(this).toggle(showCols.has(key));
+    });
+
+    $("#mainTable colgroup col[data-col]").each(function () {
+      const key = $(this).data("col");
+      $(this).toggle(showCols.has(key));
+    });
+
+    // 詳細画面が開いているなら、表示項目も同期
+    if ($("#detailModal").hasClass("show") && currentDetailId != null) {
+      const r = findByInternalId(currentDetailId);
+      if (r) renderDetailFields(r);
+    }
+  }
+
+  // ========= 一覧描画 =========
+  function renderTable() {
+    const total = records.length;
+    const usePager = total >= PAGINATION_THRESHOLD;
+
+    const totalPages = usePager ? Math.ceil(total / PAGE_SIZE) : 1;
+    currentPage = clampPage(currentPage, totalPages);
+
+    const start = usePager ? (currentPage - 1) * PAGE_SIZE : 0;
+    const end = usePager ? start + PAGE_SIZE : total;
+    const pageItems = records.slice(start, end);
+
+    const from = total ? (start + 1) : 0;
+    const to = total ? Math.min(end, total) : 0;
+    $("#resultInfo").text(`件数: ${total}件（表示: ${from}〜${to}）`);
+
+    const rowsHtml = pageItems.map(r => {
+      const tds = [];
+
+      // 操作列（詳細/申請）
+      tds.push(`
+        <td class="col-action" data-col="action">
+          <div class="action-btns">
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm js-open-modal"
+              data-bs-toggle="modal"
+              data-bs-target="#detailModal"
+              data-rowid="${r.id}"
+            >詳細</button>
+
+            <button
+              type="button"
+              class="btn btn-outline-success btn-sm js-apply"
+              data-rowid="${r.id}"
+            >申請</button>
+          </div>
+        </td>
+      `);
+
+      // テスト列
+      for (let i = 1; i <= TEST_COL_COUNT; i++) {
+        const key = `test${i}`;
+        let v = r[key];
+
+        // test3/test4 は boolean → 一覧では ✓ 表示
+        if (key === "test3" || key === "test4") {
+          v = r[key] ? "✓" : "";
+        }
+
+        tds.push(`<td data-col="${key}" title="${escapeHtml(v ?? "-")}">${escapeHtml(v ?? "-")}</td>`);
+      }
+
+      return `<tr>${tds.join("")}</tr>`;
+    }).join("");
+
+    $("#mainTbody").html(rowsHtml);
+
+    // ページャー
+    if (usePager) {
+      $("#pagerWrap").removeClass("d-none");
+      renderPager(totalPages);
+    } else {
+      $("#pagerWrap").addClass("d-none");
+      $("#pager").empty();
+    }
+
+    // tbody再描画後に列プリセットを必ず適用
+    applyColumnPreset(currentPreset);
+  }
+
+  function renderPager(totalPages) {
+    const maxNumbers = 7;
+    const pages = buildPageList(currentPage, totalPages, maxNumbers);
+    const li = [];
+
+    li.push(`
+      <li class="page-item ${currentPage === 1 ? "disabled" : ""}">
+        <a class="page-link" href="#" data-page="${currentPage - 1}">前へ</a>
+      </li>
+    `);
+
+    pages.forEach(p => {
+      if (p === "...") {
+        li.push(`<li class="page-item disabled"><span class="page-link">…</span></li>`);
+      } else {
+        li.push(`
+          <li class="page-item ${p === currentPage ? "active" : ""}">
+            <a class="page-link" href="#" data-page="${p}">${p}</a>
+          </li>
+        `);
+      }
+    });
+
+    li.push(`
+      <li class="page-item ${currentPage === totalPages ? "disabled" : ""}">
+        <a class="page-link" href="#" data-page="${currentPage + 1}">次へ</a>
+      </li>
+    `);
+
+    $("#pager").html(li.join(""));
+  }
+
+  // ========= モーダル：閲覧/編集モード =========
+  function switchToViewMode() {
+    $("#detailModal .edit-mode").addClass("d-none");
+    $("#detailModal .view-mode").removeClass("d-none");
+    $("#viewModeBtn").addClass("active");
+    $("#editModeBtn").removeClass("active");
+
+    // 下部テーブルを閲覧表示に
+    renderDetailGrid(findByInternalId(currentDetailId), { editable: false });
+  }
+
+  function switchToEditMode() {
+    $("#detailModal .view-mode").addClass("d-none");
+    $("#detailModal .edit-mode").removeClass("d-none");
+    $("#editModeBtn").addClass("active");
+    $("#viewModeBtn").removeClass("active");
+
+    // 下部テーブルを編集表示に
+    renderDetailGrid(findByInternalId(currentDetailId), { editable: true });
+  }
+
+  $("#viewModeBtn").on("click", switchToViewMode);
+  $("#editModeBtn").on("click", switchToEditMode);
+  $("#detailModal").on("hidden.bs.modal", function () {
+    // 閉じたらリセット
+    currentDetailId = null;
+    $("#detailFields").empty();
+    $("#detailGridHead").empty();
+    $("#detailGridBody").empty();
+    $("#detailRowId").text("-");
+    switchToViewMode();
+  });
+
+  // ========= 詳細：表示項目（プリセットで表示中のカラムだけ） =========
+  function getVisibleTestKeys() {
+    // 操作列は詳細に不要なので除外し、testN のみ
+    return getPresetCols(currentPreset)
+      .filter(k => k !== "action")
+      .filter(k => /^test\d+$/.test(k));
+  }
+
+  function buildFieldRow(label, viewHtml, editHtml) {
+    return `
+      <div class="row mb-3" data-field-row="1">
+        <label class="col-sm-3 col-form-label">${label}</label>
+        <div class="col-sm-9">
+          <div class="view-mode">${viewHtml}</div>
+          <div class="edit-mode d-none">${editHtml}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDetailFields(record) {
+    const keys = getVisibleTestKeys();
+
+    // IDっぽい表示（内部IDではなく test1 の値）
+    $("#detailRowId").text(record.test1 ?? "-");
+
+    const html = keys.map(key => {
+      const n = Number(key.replace("test",""));
+      const label = `テスト${n}`;
+
+      // 値の取り出し（test3/test4はboolean）
+      const raw = record[key];
+
+      // 表示用
+      let viewVal = raw;
+      if (key === "test3" || key === "test4") viewVal = raw ? "✓" : "";
+
+      const viewHtml = `<p class="form-control-plaintext m-0">${escapeHtml(viewVal ?? "-")}</p>`;
+
+      // 編集用（要件）
+      // - テスト2：プルダウン（テスト2+ / テスト2-）
+      // - テスト3/テスト4：チェックボックス
+      // - それ以外：テキスト
+      let editHtml = "";
+      if (key === "test1") {
+        // テスト1は編集不可（例）
+        editHtml = `
+          <input type="text" class="form-control bg-light text-muted" data-edit-key="${key}" value="${escapeHtml(raw ?? "")}" readonly tabindex="-1">
+        `;
+      } else if (key === "test2") {
+        const v = (raw === "テスト2+") ? "テスト2+" : "テスト2-";
+        editHtml = `
+          <select class="form-select" data-edit-key="${key}">
+            <option value="テスト2+" ${v==="テスト2+" ? "selected":""}>テスト2+</option>
+            <option value="テスト2-" ${v==="テスト2-" ? "selected":""}>テスト2-</option>
+          </select>
+        `;
+      } else if (key === "test3" || key === "test4") {
+        const checked = raw ? "checked" : "";
+        editHtml = `
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="chk_${key}" data-edit-key="${key}" ${checked}>
+            <label class="form-check-label" for="chk_${key}">${label} を有効</label>
+          </div>
+        `;
+      } else {
+        editHtml = `
+          <input type="text" class="form-control" data-edit-key="${key}" value="${escapeHtml(raw ?? "")}">
+        `;
+      }
+
+      return buildFieldRow(label, viewHtml, editHtml);
+    }).join("");
+
+    $("#detailFields").html(html);
+
+    // 現在のモードに合わせて表示
+    if ($("#editModeBtn").hasClass("active")) {
+      $("#detailModal .view-mode").addClass("d-none");
+      $("#detailModal .edit-mode").removeClass("d-none");
+    } else {
+      $("#detailModal .edit-mode").addClass("d-none");
+      $("#detailModal .view-mode").removeClass("d-none");
+    }
+  }
+
+  // ========= 詳細：下部テーブル（意味なしデータ、編集時セル強調） =========
+  function renderDetailGrid(record, opts) {
+    if (!record) return;
+
+    const editable = !!opts.editable;
+    const grid = record.detailGrid;
+
+    // ヘッダー
+    const head = `
+      <tr>
+        <th style="width:60px">#</th>
+        <th>${escapeHtml(grid.cols[0])}</th>
+        <th>${escapeHtml(grid.cols[1])}</th>
+        <th>${escapeHtml(grid.cols[2])}</th>
+        <th>${escapeHtml(grid.cols[3])}</th>
+      </tr>
+    `;
+    $("#detailGridHead").html(head);
+
+    // ボディ
+    const body = grid.rows.map((row, idx) => {
+      const rno = idx + 1;
+
+      function cell(key, value) {
+        const v = value ?? "";
+        if (!editable) {
+          return `<td><div class="px-2 py-1">${escapeHtml(v)}</div></td>`;
+        }
+        // 編集時：input + data-original で差分判定
+        return `
+          <td>
+            <input
+              type="text"
+              class="grid-input"
+              data-grid-row="${idx}"
+              data-grid-col="${key}"
+              data-original="${escapeHtml(v)}"
+              value="${escapeHtml(v)}"
+            >
+          </td>
+        `;
+      }
+
+      return `
+        <tr>
+          <td class="text-muted small text-center">${rno}</td>
+          ${cell("c1", row.c1)}
+          ${cell("c2", row.c2)}
+          ${cell("c3", row.c3)}
+          ${cell("c4", row.c4)}
+        </tr>
+      `;
+    }).join("");
+
+    $("#detailGridBody").html(body);
+
+    // 編集時：変更検知してセル強調
+    if (editable) {
+      $("#detailGridBody .grid-input").off("input").on("input", function () {
+        const $inp = $(this);
+        const original = String($inp.data("original") ?? "");
+        const now = String($inp.val() ?? "");
+        const $td = $inp.closest("td");
+        $td.toggleClass("edited-cell", now !== original);
+      });
+    }
+  }
+
+  // ========= 詳細を開く =========
+  $(document).on("click", ".js-open-modal", function () {
+    const rowId = Number($(this).data("rowid"));
+    const r = findByInternalId(rowId);
+    if (!r) return;
+
+    currentDetailId = rowId;
+
+    // 表示項目：プリセットに合わせて生成
+    renderDetailFields(r);
+
+    // 下部テーブル：閲覧モードで表示
+    switchToViewMode();
+  });
+
+  // ========= 申請（デモ） =========
+  $(document).on("click", ".js-apply", function () {
+    const rowId = Number($(this).data("rowid"));
+    const r = findByInternalId(rowId);
+    alert(`申請しました（デモ）: ${r?.test1 ?? rowId}`);
+  });
+
+  // ========= 詳細：保存 =========
+  $("#detailForm").on("submit", function (e) {
+    e.preventDefault();
+    if (currentDetailId == null) return;
+
+    const r = findByInternalId(currentDetailId);
+    if (!r) return;
+
+    // 表示中（プリセットで見えている）項目のみ更新対象にする
+    const keys = getVisibleTestKeys();
+
+    keys.forEach(key => {
+      // テスト3/4：checkbox
+      if (key === "test3" || key === "test4") {
+        const v = $(`#detailFields [data-edit-key="${key}"]`).prop("checked");
+        r[key] = !!v;
+        return;
+      }
+
+      const $el = $(`#detailFields [data-edit-key="${key}"]`);
+      if ($el.length) {
+        r[key] = $el.val();
+      }
+    });
+
+    // 下部テーブル：編集差分があれば反映（編集モード時のみ）
+    if ($("#editModeBtn").hasClass("active")) {
+      $("#detailGridBody .grid-input").each(function () {
+        const $inp = $(this);
+        const rowIdx = Number($inp.data("grid-row"));
+        const colKey = String($inp.data("grid-col"));
+        const original = String($inp.data("original") ?? "");
+        const now = String($inp.val() ?? "");
+        if (now !== original) {
+          r.detailGrid.rows[rowIdx][colKey] = now;
+          // 保存後は強調解除し、original を更新
+          $inp.data("original", now);
+          $inp.closest("td").removeClass("edited-cell");
+        }
+      });
+    }
+
+    // モーダル表示を更新
+    renderDetailFields(r);
+    switchToViewMode();
+
+    // 一覧へ反映（現在ページのみ再描画）
+    renderTable();
+  });
+
+  // ========= イベント：列プリセット変更 =========
+  $("#columnPreset").on("change", function () {
+    currentPreset = $(this).val();
+    applyColumnPreset(currentPreset);
+  });
+
+  // ========= イベント：ページクリック =========
+  $(document).on("click", "#pager a.page-link", function (e) {
+    e.preventDefault();
+    const page = Number($(this).data("page"));
+    if (!Number.isFinite(page)) return;
+
+    const total = records.length;
+    const usePager = total >= PAGINATION_THRESHOLD;
+    const totalPages = usePager ? Math.ceil(total / PAGE_SIZE) : 1;
+
+    currentPage = clampPage(page, totalPages);
+    renderTable();
+    $(".table-wrap").scrollTop(0);
+  });
+
+  // ========= 行追加（デモ） =========
+  $("#addRowBtn").on("click", function () {
+    const nextId = (records.reduce((m, r) => Math.max(m, Number(r.id)), 0) || 0) + 1;
+    const i = nextId;
+    const obj = {
+      id: i,
+      test1: `値1-${i}`,
+      test2: (i % 2 === 0) ? "テスト2+" : "テスト2-",
+      test3: false,
+      test4: false,
+      test5: `値5-${i}`,
+      test6: `値6-${i}`,
+      test7: `値7-${i}`,
+      test8: `値8-${i}`,
+      test9: `値9-${i}`,
+      test10:`値10-${i}`,
+      test11:`値11-${i}`,
+      test12:`値12-${i}`,
+      detailGrid: makeGrid(i)
+    };
+    records.push(obj);
+    renderTable();
+  });
+
+  // ========= 初期化 =========
+  buildColumns();
+  renderTable();
+  applyColumnPreset(currentPreset);
+});
+</script>
+
+</body>
+</html>
