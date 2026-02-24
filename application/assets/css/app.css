@@ -1,0 +1,23 @@
+/* Bootstrapで足りない最小限だけ */
+.group-bar{
+  background:#111;
+  color:#fff;
+  padding:.5rem .75rem;
+  border-radius:.25rem;
+  margin: 1rem 0 .75rem;
+  font-weight: 600;
+  font-size: .95rem;
+}
+
+/* 変更箇所の強調 */
+.changed-row{
+  background: rgba(255, 193, 7, 0.18); /* warning系の薄い色 */
+  border-radius: .25rem;
+}
+.changed-badge{
+  font-size: .75rem;
+}
+.value-before{
+  color: #6c757d; /* text-muted相当 */
+  text-decoration: line-through;
+}
