@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3項目編集モーダル + 変更履歴</title>
+
+  <!-- Bootstrap CSS -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+  />
+
+  <style>
+    body {
+      padding: 24px;
+    }
+
+    .value-box {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+
+    .history-table td,
+    .history-table th {
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    .diff-old {
+      color: #dc3545;
+      text-decoration: line-through;
+      margin-right: 8px;
+      display: inline-block;
+    }
+
+    .diff-new {
+      color: #28a745;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    .no-history {
+      color: #6c757d;
+      font-style: italic;
+      padding: 12px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h3 class="mb-4">対象データ</h3>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="value-box">
+          <strong>カラム1:</strong>
+          <span id="view-col1"></span>
+        </div>
+        <div class="value-box">
+          <strong>カラム2:</strong>
+          <span id="view-col2"></span>
+        </div>
+        <div class="value-box">
+          <strong>カラム3:</strong>
+          <span id="view-col3"></span>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary mt-3" id="openEditModalBtn">
+      編集
+    </button>
+  </div>
+
+  <!-- 編集モーダル -->
+  <div
+    class="modal fade"
+    id="editModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="editModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="editModalLabel">3項目編集 / 変更履歴確認</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="閉じる">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <ul class="nav nav-tabs" id="editHistoryTab" role="tablist">
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                id="edit-tab"
+                data-toggle="tab"
+                href="#edit-pane"
+                role="tab"
+                aria-controls="edit-pane"
+                aria-selected="true"
+              >
+                編集
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                id="history-tab"
+                data-toggle="tab"
+                href="#history-pane"
+                role="tab"
+                aria-controls="history-pane"
+                aria-selected="false"
+              >
+                変更履歴
+              </a>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-3">
+            <!-- 編集タブ -->
+            <div
+              class="tab-pane fade show active"
+              id="edit-pane"
+              role="tabpanel"
+              aria-labelledby="edit-tab"
+            >
+              <form id="editForm">
+                <div class="form-group">
+                  <label for="inputCol1">カラム1</label>
+                  <input type="text" class="form-control" id="inputCol1" maxlength="100" />
+                </div>
+
+                <div class="form-group">
+                  <label for="inputCol2">カラム2</label>
+                  <input type="text" class="form-control" id="inputCol2" maxlength="100" />
+                </div>
+
+                <div class="form-group">
+                  <label for="inputCol3">カラム3</label>
+                  <input type="text" class="form-control" id="inputCol3" maxlength="100" />
+                </div>
+              </form>
+            </div>
+
+            <!-- 履歴タブ -->
+            <div
+              class="tab-pane fade"
+              id="history-pane"
+              role="tabpanel"
+              aria-labelledby="history-tab"
+            >
+              <div id="historyArea"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">閉じる</button>
+          <button type="button" class="btn btn-success" id="saveBtn">保存</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery / Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    $(function () {
+      // 現在のデータ
+      const currentData = {
+        id: 1,
+        col1: "サンプル文字列A",
+        col2: "サンプル文字列B",
+        col3: "サンプル文字列C"
+      };
+
+      // 変更履歴
+      // 本来はDBから取得する想定
+      let histories = [
+        {
+          updatedAt: "2026-03-18 08:30:00",
+          updatedBy: "user01",
+          changes: [
+            { field: "col1", label: "カラム1", oldValue: "旧A", newValue: "サンプル文字列A" }
+          ]
+        },
+        {
+          updatedAt: "2026-03-18 09:00:00",
+          updatedBy: "user02",
+          changes: [
+            { field: "col2", label: "カラム2", oldValue: "旧B", newValue: "サンプル文字列B" },
+            { field: "col3", label: "カラム3", oldValue: "旧C", newValue: "サンプル文字列C" }
+          ]
+        }
+      ];
+
+      // 実際のログインユーザー想定
+      const loginUser = "T.kubo";
+
+      function escapeHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function formatDate(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const dd = String(date.getDate()).padStart(2, "0");
+        const hh = String(date.getHours()).padStart(2, "0");
+        const mi = String(date.getMinutes()).padStart(2, "0");
+        const ss = String(date.getSeconds()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+      }
+
+      function renderCurrentData() {
+        $("#view-col1").text(currentData.col1);
+        $("#view-col2").text(currentData.col2);
+        $("#view-col3").text(currentData.col3);
+      }
+
+      function setFormValues() {
+        $("#inputCol1").val(currentData.col1);
+        $("#inputCol2").val(currentData.col2);
+        $("#inputCol3").val(currentData.col3);
+      }
+
+      function buildDiffRows(changes) {
+        return changes.map(change => {
+          return `
+            <tr>
+              <td>${escapeHtml(change.label)}</td>
+              <td>
+                <span class="diff-old">${escapeHtml(change.oldValue)}</span>
+                →
+                <span class="diff-new">${escapeHtml(change.newValue)}</span>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function renderHistories() {
+        if (!histories.length) {
+          $("#historyArea").html('<div class="no-history">変更履歴はありません。</div>');
+          return;
+        }
+
+        const html = histories
+          .slice()
+          .reverse()
+          .map(history => {
+            return `
+              <div class="card mb-3">
+                <div class="card-header">
+                  <strong>更新日時:</strong> ${escapeHtml(history.updatedAt)}
+                  &nbsp;&nbsp;
+                  <strong>更新者:</strong> ${escapeHtml(history.updatedBy)}
+                </div>
+                <div class="card-body p-0">
+                  <table class="table table-sm table-bordered mb-0 history-table">
+                    <thead class="thead-light">
+                      <tr>
+                        <th style="width: 180px;">項目</th>
+                        <th>変更内容</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${buildDiffRows(history.changes)}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        $("#historyArea").html(html);
+      }
+
+      function collectChanges(newData) {
+        const defs = [
+          { field: "col1", label: "カラム1" },
+          { field: "col2", label: "カラム2" },
+          { field: "col3", label: "カラム3" }
+        ];
+
+        const changes = [];
+
+        defs.forEach(def => {
+          const oldValue = currentData[def.field] ?? "";
+          const newValue = newData[def.field] ?? "";
+
+          if (oldValue !== newValue) {
+            changes.push({
+              field: def.field,
+              label: def.label,
+              oldValue,
+              newValue
+            });
+          }
+        });
+
+        return changes;
+      }
+
+      function validateForm(newData) {
+        if (!newData.col1.trim()) {
+          alert("カラム1を入力してください。");
+          return false;
+        }
+        if (!newData.col2.trim()) {
+          alert("カラム2を入力してください。");
+          return false;
+        }
+        if (!newData.col3.trim()) {
+          alert("カラム3を入力してください。");
+          return false;
+        }
+        return true;
+      }
+
+      $("#openEditModalBtn").on("click", function () {
+        setFormValues();
+        renderHistories();
+
+        // 編集タブを開く
+        $('#editHistoryTab a[href="#edit-pane"]').tab("show");
+
+        $("#editModal").modal("show");
+      });
+
+      $("#saveBtn").on("click", function () {
+        const newData = {
+          col1: $("#inputCol1").val(),
+          col2: $("#inputCol2").val(),
+          col3: $("#inputCol3").val()
+        };
+
+        if (!validateForm(newData)) {
+          return;
+        }
+
+        const changes = collectChanges(newData);
+
+        if (!changes.length) {
+          alert("変更箇所がありません。");
+          return;
+        }
+
+        // 変更履歴追加
+        histories.push({
+          updatedAt: formatDate(new Date()),
+          updatedBy: loginUser,
+          changes: changes
+        });
+
+        // 現在値更新
+        currentData.col1 = newData.col1;
+        currentData.col2 = newData.col2;
+        currentData.col3 = newData.col3;
+
+        renderCurrentData();
+        renderHistories();
+
+        alert("保存しました。");
+        $("#editModal").modal("hide");
+      });
+
+      // 初期表示
+      renderCurrentData();
+    });
+  </script>
+</body>
+</html>
