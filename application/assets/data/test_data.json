@@ -1,0 +1,32 @@
+[
+  {
+    "id": 101,
+    "name": "サンプルA",
+    "type": "A",
+    "plan": "basic",
+    "notify": "email",
+    "emailAddress": "a@example.com",
+    "smsNumber": "",
+    "agree": true
+  },
+  {
+    "id": 102,
+    "name": "サンプルB",
+    "type": "B",
+    "plan": "pro",
+    "notify": "sms",
+    "emailAddress": "",
+    "smsNumber": "09012345678",
+    "agree": true
+  },
+  {
+    "id": 103,
+    "name": "サンプルC",
+    "type": "A",
+    "plan": "pro",
+    "notify": "email",
+    "emailAddress": "c@example.com",
+    "smsNumber": "",
+    "agree": false
+  }
+]
