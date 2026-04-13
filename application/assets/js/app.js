@@ -1,35 +1,36 @@
-// assets/js/app.js
 $(async function () {
   try {
-    const records = await window.App.Api.fetchTestData();
-    renderRecordsTable(records);
+    const applications = await window.App.Api.fetchApplications();
+    renderApplicationsTable(applications);
 
     const wizard = window.App.createModalWizard();
     const detailView = window.App.createDetailView();
 
-    window.App.bindTableActions(wizard, detailView);
+    window.App.bindApplicationTableActions(wizard, detailView);
   } catch (e) {
     console.error(e);
     alert("初期データの読み込みに失敗しました。");
   }
 });
 
-function renderRecordsTable(records) {
+function renderApplicationsTable(applications) {
   const $tbody = $("#recordsTable tbody");
 
-  const html = (records || [])
-    .map((record) => {
-      const escapedJson = escapeAttrJson(record);
+  const html = (applications || [])
+    .map((app) => {
+      const escapedJson = escapeAttrJson(app);
+      const typeText =
+        window.App.APPLY_TYPES?.[app.applyType]?.title || app.applyType || "";
 
       return `
-        <tr data-record='${escapedJson}'>
-          <td>${escapeHtml(record.id)}</td>
-          <td>${escapeHtml(record.name ?? "")}</td>
-          <td>${escapeHtml(record.type ?? "")}</td>
+        <tr data-application='${escapedJson}'>
+          <td>${escapeHtml(app.applicationId)}</td>
+          <td>${escapeHtml(typeText)}</td>
+          <td>${escapeHtml(app.targetId ?? "—")}</td>
+          <td>${escapeHtml(app.status ?? "")}</td>
+          <td>${escapeHtml(app.appliedAt ?? "")}</td>
           <td class="text-end">
             <button class="btn btn-sm btn-outline-info btnDetail">詳細</button>
-            <button class="btn btn-sm btn-outline-warning btnEdit">変更</button>
-            <button class="btn btn-sm btn-outline-danger btnDelete">削除</button>
           </td>
         </tr>
       `;
