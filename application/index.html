@@ -29,11 +29,10 @@
               <th class="text-end">操作</th>
             </tr>
           </thead>
-          <tbody>
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
-      <div class="text-muted small">※ test_data.json から一覧を表示</div>
+      <div class="text-muted small">※ 一覧は test_data.json から読み込みます</div>
     </div>
   </div>
 
@@ -43,7 +42,6 @@
 <div class="modal fade" id="applyModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
-
       <div class="modal-header text-white" id="applyModalHeader">
         <h5 class="modal-title" id="applyModalTitle">新規申請</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="閉じる"></button>
@@ -67,12 +65,10 @@
 
       <div class="modal-footer">
         <div class="me-auto text-danger small d-none" id="formError">入力に不備があります。</div>
-
         <button type="button" class="btn btn-outline-secondary d-none" id="btnBack">戻る</button>
         <button type="button" class="btn btn-primary" id="btnNext">次へ</button>
         <button type="button" class="btn btn-success d-none" id="btnSubmit">申請</button>
       </div>
-
     </div>
   </div>
 </div>
@@ -81,23 +77,20 @@
 <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
-
-      <div class="modal-header bg-secondary text-white">
-        <h5 class="modal-title">詳細</h5>
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="detailModalTitle">詳細</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="閉じる"></button>
       </div>
 
       <div class="modal-body">
-        <div class="fw-semibold mb-2">申請内容（詳細）</div>
         <div id="detailSummary" class="border rounded p-3 bg-white"></div>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-warning" id="btnDetailEdit">変更申請</button>
-        <button type="button" class="btn btn-outline-danger" id="btnDetailDelete">削除申請</button>
+        <button type="button" class="btn btn-outline-warning" id="btnEditFromDetail">変更申請</button>
+        <button type="button" class="btn btn-outline-danger" id="btnDeleteFromDetail">削除申請</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
       </div>
-
     </div>
   </div>
 </div>
@@ -109,6 +102,7 @@
 <script src="./assets/js/modules/validators.js"></script>
 <script src="./assets/js/modules/api.js"></script>
 <script src="./assets/js/modules/modalWizard.js"></script>
+<script src="./assets/js/modules/detailView.js"></script>
 <script src="./assets/js/modules/tableActions.js"></script>
 <script src="./assets/js/app.js"></script>
 
