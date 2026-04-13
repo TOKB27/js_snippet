@@ -1,32 +1,87 @@
 [
   {
-    "id": 101,
-    "name": "サンプルA",
-    "type": "A",
-    "plan": "basic",
-    "notify": "email",
-    "emailAddress": "a@example.com",
-    "smsNumber": "",
-    "agree": true
+    "applicationId": 9001,
+    "applyType": "NEW",
+    "targetId": null,
+    "status": "承認待ち",
+    "appliedAt": "2026-04-14 09:00",
+    "formValues": {
+      "name": "サンプルA",
+      "type": "A",
+      "plan": "basic",
+      "notify": "email",
+      "emailAddress": "a@example.com",
+      "smsNumber": "",
+      "agree": true
+    },
+    "originalValues": {},
+    "precheck": {
+      "confirmText": "新規申請です",
+      "impact": "low",
+      "rollback": "no",
+      "finalCheck": true
+    }
   },
   {
-    "id": 102,
-    "name": "サンプルB",
-    "type": "B",
-    "plan": "pro",
-    "notify": "sms",
-    "emailAddress": "",
-    "smsNumber": "09012345678",
-    "agree": true
+    "applicationId": 9002,
+    "applyType": "UPDATE",
+    "targetId": 101,
+    "status": "申請中",
+    "appliedAt": "2026-04-14 10:00",
+    "formValues": {
+      "name": "サンプルA改",
+      "type": "A",
+      "plan": "pro",
+      "notify": "email",
+      "emailAddress": "a@example.com",
+      "smsNumber": "",
+      "agree": true
+    },
+    "originalValues": {
+      "name": "サンプルA",
+      "type": "A",
+      "plan": "basic",
+      "notify": "email",
+      "emailAddress": "a@example.com",
+      "smsNumber": "",
+      "agree": true
+    },
+    "precheck": {
+      "confirmText": "変更内容確認済み",
+      "impact": "mid",
+      "rollback": "yes",
+      "finalCheck": true
+    }
   },
   {
-    "id": 103,
-    "name": "サンプルC",
-    "type": "A",
-    "plan": "pro",
-    "notify": "email",
-    "emailAddress": "c@example.com",
-    "smsNumber": "",
-    "agree": false
+    "applicationId": 9003,
+    "applyType": "DELETE",
+    "targetId": 102,
+    "status": "承認待ち",
+    "appliedAt": "2026-04-14 11:00",
+    "formValues": {
+      "name": "サンプルB",
+      "type": "B",
+      "plan": "pro",
+      "notify": "sms",
+      "emailAddress": "",
+      "smsNumber": "09012345678",
+      "agree": true
+    },
+    "originalValues": {
+      "name": "サンプルB",
+      "type": "B",
+      "plan": "pro",
+      "notify": "sms",
+      "emailAddress": "",
+      "smsNumber": "09012345678",
+      "agree": true
+    },
+    "precheck": {
+      "confirmText": "削除申請です",
+      "impact": "high",
+      "rollback": "yes",
+      "finalCheck": true
+    }
   }
 ]
