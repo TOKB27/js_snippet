@@ -23,3 +23,6 @@ npm install @mui/icons-material
 
 ## ローカル開発サーバーの起動
 npm run dev
+
+## ビルド（静的ファイルの生成→プロジェクト直下に dist というフォルダが生成）
+npm run build
