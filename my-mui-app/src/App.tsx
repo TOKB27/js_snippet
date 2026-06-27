@@ -1,56 +1,78 @@
-import Box from '@mui/material/Box';
-import { DataGrid } from '@mui/x-data-grid';
-import type { GridColDef } from '@mui/x-data-grid'; // ← type を追加して別行にする
+import type React from "react";
+import { useState } from "react";
+import { ThemeProvider, CssBaseline, Box, AppBar, Toolbar, Typography, Button } from "@mui/material";
+import { theme } from "./theme/theme";
+import { SystemSelectorPage } from "./features/system-selector/SystemSelectorPage";
+import { SystemAPage } from "./pages/SystemAPage";
+import { SystemBPage } from "./pages/SystemBPage";
+// 💡 デモページをインポート
+import { VersionDiffDemoPage } from "./pages/VersionDiffDemoPage";
 
-// 1. 列の定義（テーブルのヘッダー部分）
-// TypeScriptの型「GridColDef」を適用することで、安全に列を定義できます。
-const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 90 },
-  { field: 'firstName', headerName: '名', width: 150 },
-  { field: 'lastName', headerName: '姓', width: 150 },
-  { field: 'age', headerName: '年齢', type: 'number', width: 110 },
-];
+type ActivePage = "PORTAL" | "SYSTEM_A" | "SYSTEM_B" | "DEMO";
 
-// 2. 行のデータ（API等から取得することを想定したデータ部分）
-// ※ DataGridの仕様上、各オブジェクトに必ず一意の「id」プロパティが必要です。
-const rows = [
-  { id: 1, lastName: '山田', firstName: '太郎', age: 35 },
-  { id: 2, lastName: '佐藤', firstName: '花子', age: 28 },
-  { id: 3, lastName: '鈴木', firstName: '一郎', age: 42 },
-];
+export const App: React.FC = () => {
+	const [activePage, setActivePage] = useState<ActivePage>("PORTAL");
 
-function App() {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#f5f5f5',
-        p: 3 // パディングを追加
-      }}
-    >
-      {/* DataGrid を配置。
-        親要素（ここではBoxや、この下のdiv）に高さ（height）と幅（width）を
-        指定しないと表示されない仕様になっているため、sxで指定しています。
-      */}
-      <Box sx={{ height: 300, width: '100%', maxWidth: 600, bgcolor: 'background.paper' }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          initialState={{
-            pagination: {
-              paginationModel: { page: 0, pageSize: 5 },
-            },
-          }}
-          pageSizeOptions={[5, 10]}
-          checkboxSelection // 行のチェックボックス選択機能を有効化
-          disableRowSelectionOnClick
-        />
-      </Box>
-    </Box>
-  );
-}
+	const handleSelectSystem = (systemId: "A" | "B" | "C") => {
+		if (systemId === "A") {
+			setActivePage("SYSTEM_A");
+		} else if (systemId === "B") {
+			setActivePage("SYSTEM_B");
+		}
+	};
 
-export default App
+	const handleBackToPortal = () => {
+		setActivePage("PORTAL");
+	};
+
+	return (
+		<ThemeProvider theme={theme}>
+			<CssBaseline />
+			
+			<Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: "background.default" }}>
+				{/* グローバルナビゲーションバー */}
+				<AppBar position="static" elevation={1} sx={{ bgcolor: "background.paper", color: "text.primary" }}>
+					<Toolbar>
+						<Typography
+							variant="h6"
+							component="div"
+							sx={{ flexGrow: 1, fontWeight: 700, letterSpacing: "0.5px", cursor: "pointer" }}
+							onClick={handleBackToPortal}
+						>
+							情報一元管理プラットフォーム
+						</Typography>
+
+						{/* ナビゲーションバーの右側に「差分デモ」ボタンを配置 */}
+						<Button
+							color="primary"
+							variant={activePage === "DEMO" ? "contained" : "text"}
+							onClick={() => setActivePage("DEMO")}
+							sx={{ textTransform: "none", fontWeight: 600, ml: 2 }}
+						>
+							履歴・差分デモ画面を開く
+						</Button>
+					</Toolbar>
+				</AppBar>
+
+				{/* 画面の条件付きレンダリング */}
+				<Box component="main">
+					{activePage === "PORTAL" && (
+						<SystemSelectorPage onSelectSystem={handleSelectSystem} />
+					)}
+					{activePage === "SYSTEM_A" && (
+						<SystemAPage onBack={handleBackToPortal} />
+					)}
+					{activePage === "SYSTEM_B" && (
+						<SystemBPage onBack={handleBackToPortal} />
+					)}
+					{/* 💡 状態が 'DEMO' の時にデモページを表示 */}
+					{activePage === "DEMO" && (
+						<VersionDiffDemoPage onBack={handleBackToPortal} />
+					)}
+				</Box>
+			</Box>
+		</ThemeProvider>
+	);
+};
+
+export default App;

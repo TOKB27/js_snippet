@@ -12,14 +12,26 @@ cd my-mui-app
 
 
 ## 依存パッケージのインストール
-### 1. 基本パッケージのインストール
+### 基本パッケージのインストール
 npm install
 
-### 2. MUI コアパッケージのインストール
+### MUI コアパッケージのインストール
 npm install @mui/material @emotion/react @emotion/styled
 
-### 3. MUI アイコンのインストール（任意ですが、よく使うため推奨）
+### MUI DataGridのインストール
+npm install @mui/x-data-grid
+
+# MUI Date Pickers ＆ 日付ユーティリティ（申請のカレンダー選択用）のインストール
+npm install @mui/x-date-pickers date-fns
+
+# MUI Icons（プラスアイコンや戻る矢印など）のインストール
 npm install @mui/icons-material
+
+# Biomeのインストール
+npm install @biomejs/biome
+
+# Biome初期設定ファイル作成
+npx @biomejs/biome init
 
 ## ローカル開発サーバーの起動
 npm run dev
