@@ -1,5 +1,5 @@
+import { Box, CircularProgress, LinearProgress, Paper, Typography } from "@mui/material";
 import type React from "react";
-import { Box, CircularProgress, Typography, LinearProgress, Paper } from "@mui/material";
 
 interface LoadingProgressProps {
 	/**
@@ -73,20 +73,33 @@ export const LoadingProgress: React.FC<LoadingProgressProps> = ({
 							justifyContent: "center",
 						}}
 					>
-						<Typography variant="caption" component="div" color="text.secondary" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+						<Typography
+							variant="caption"
+							component="div"
+							color="text.secondary"
+							sx={{ fontWeight: 600, fontSize: "1.1rem" }}
+						>
 							{`${Math.round(clampedProgress)}%`}
 						</Typography>
 					</Box>
 				</Box>
 
 				{/* ステータスメッセージ */}
-				<Typography variant="h6" component="h2" sx={{ fontWeight: 600, mb: 1, color: "text.primary" }}>
+				<Typography
+					variant="h6"
+					component="h2"
+					sx={{ fontWeight: 600, mb: 1, color: "text.primary" }}
+				>
 					{message}
 				</Typography>
 
 				{/* 詳細情報 (データサイズなど) */}
 				{detailText && (
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontVariantNumeric: "tabular-nums" }}>
+					<Typography
+						variant="body2"
+						color="text.secondary"
+						sx={{ mb: 2, fontVariantNumeric: "tabular-nums" }}
+					>
 						{detailText}
 					</Typography>
 				)}

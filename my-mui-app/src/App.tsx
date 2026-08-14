@@ -1,12 +1,20 @@
+import {
+	AppBar,
+	Box,
+	Button,
+	CssBaseline,
+	ThemeProvider,
+	Toolbar,
+	Typography,
+} from "@mui/material";
 import type React from "react";
 import { useState } from "react";
-import { ThemeProvider, CssBaseline, Box, AppBar, Toolbar, Typography, Button } from "@mui/material";
-import { theme } from "./theme/theme";
 import { SystemSelectorPage } from "./features/system-selector/SystemSelectorPage";
 import { SystemAPage } from "./pages/SystemAPage";
 import { SystemBPage } from "./pages/SystemBPage";
 // 💡 デモページをインポート
 import { VersionDiffDemoPage } from "./pages/VersionDiffDemoPage";
+import { theme } from "./theme/theme";
 
 type ActivePage = "PORTAL" | "SYSTEM_A" | "SYSTEM_B" | "DEMO";
 
@@ -28,10 +36,14 @@ export const App: React.FC = () => {
 	return (
 		<ThemeProvider theme={theme}>
 			<CssBaseline />
-			
+
 			<Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: "background.default" }}>
 				{/* グローバルナビゲーションバー */}
-				<AppBar position="static" elevation={1} sx={{ bgcolor: "background.paper", color: "text.primary" }}>
+				<AppBar
+					position="static"
+					elevation={1}
+					sx={{ bgcolor: "background.paper", color: "text.primary" }}
+				>
 					<Toolbar>
 						<Typography
 							variant="h6"
@@ -56,19 +68,11 @@ export const App: React.FC = () => {
 
 				{/* 画面の条件付きレンダリング */}
 				<Box component="main">
-					{activePage === "PORTAL" && (
-						<SystemSelectorPage onSelectSystem={handleSelectSystem} />
-					)}
-					{activePage === "SYSTEM_A" && (
-						<SystemAPage onBack={handleBackToPortal} />
-					)}
-					{activePage === "SYSTEM_B" && (
-						<SystemBPage onBack={handleBackToPortal} />
-					)}
+					{activePage === "PORTAL" && <SystemSelectorPage onSelectSystem={handleSelectSystem} />}
+					{activePage === "SYSTEM_A" && <SystemAPage onBack={handleBackToPortal} />}
+					{activePage === "SYSTEM_B" && <SystemBPage onBack={handleBackToPortal} />}
 					{/* 💡 状態が 'DEMO' の時にデモページを表示 */}
-					{activePage === "DEMO" && (
-						<VersionDiffDemoPage onBack={handleBackToPortal} />
-					)}
+					{activePage === "DEMO" && <VersionDiffDemoPage onBack={handleBackToPortal} />}
 				</Box>
 			</Box>
 		</ThemeProvider>
