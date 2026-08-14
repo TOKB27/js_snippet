@@ -1,4 +1,4 @@
-import type React from "react";
+import { Apple, SportsSoccer } from "@mui/icons-material";
 import {
 	Box,
 	Button,
@@ -9,7 +9,7 @@ import {
 	Grid,
 	Typography,
 } from "@mui/material";
-import { Apple, SportsSoccer } from "@mui/icons-material";
+import type React from "react";
 
 // システム定義の型安全なインターフェース
 interface SystemInfo {
@@ -23,9 +23,7 @@ interface SystemSelectorPageProps {
 	onSelectSystem: (systemId: "A" | "B") => void;
 }
 
-export const SystemSelectorPage: React.FC<SystemSelectorPageProps> = ({
-	onSelectSystem,
-}) => {
+export const SystemSelectorPage: React.FC<SystemSelectorPageProps> = ({ onSelectSystem }) => {
 	// フルーツ管理・スポーツ管理に特化したシステム定義
 	const systems: SystemInfo[] = [
 		{

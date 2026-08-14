@@ -1,18 +1,24 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
-import CssBaseline from '@mui/material/CssBaseline'
+import CssBaseline from "@mui/material/CssBaseline";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
 
-// 必要最小限のテーマ設定（デフォルト設定を使用）
-const theme = createTheme()
+const theme = createTheme();
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      {/* 画面全体のスタイルをMUI仕様にリセット */}
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
-  </React.StrictMode>,
-)
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+	throw new Error(
+		"Failed to find the root element. Please ensure 'index.html' contains a '<div id=\"root\"></div>'.",
+	);
+}
+
+ReactDOM.createRoot(rootElement).render(
+	<React.StrictMode>
+		<ThemeProvider theme={theme}>
+			<CssBaseline />
+			<App />
+		</ThemeProvider>
+	</React.StrictMode>,
+);

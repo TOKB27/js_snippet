@@ -1,7 +1,7 @@
-import type React from "react";
-import { Box, Container, Typography, Stack, Button, Chip } from "@mui/material";
 import { ArrowBack as ArrowBackIcon, CompareArrows as CompareIcon } from "@mui/icons-material";
+import { Box, Button, Chip, Container, Stack, Typography } from "@mui/material";
 import { DataGrid, type GridColDef, type GridColumnGroupingModel } from "@mui/x-data-grid";
+import type React from "react";
 
 interface FruitRecord {
 	gridRowId: string;
@@ -21,7 +21,6 @@ interface VersionDiffDemoPageProps {
 }
 
 export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack }) => {
-	
 	const rows: FruitRecord[] = [
 		{
 			gridRowId: "FRUIT-001-v2",
@@ -30,7 +29,8 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			fruitName: "完熟マンゴー (宮崎県産)",
 			category: "トロピカルフルーツ",
 			price: 4980,
-			purpose: "糖度検査にて15度を記録したため、出荷選別基準をギフトB級から特選A級へ引き上げて再申請。",
+			purpose:
+				"糖度検査にて15度を記録したため、出荷選別基準をギフトB級から特選A級へ引き上げて再申請。",
 			updatedAt: "2026-06-26 10:15",
 			updatedBy: "検収担当 佐藤",
 			type: "before",
@@ -42,7 +42,8 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			fruitName: "特選 完熟マンゴー (宮崎県産プレミアム)",
 			category: "熱帯果樹",
 			price: 5800,
-			purpose: "糖度検査16度以上クリア。お中元ギフト用の最終検収および特殊フィルムパッキング包装を適用。",
+			purpose:
+				"糖度検査16度以上クリア。お中元ギフト用の最終検収および特殊フィルムパッキング包装を適用。",
 			updatedAt: "2026-06-27 15:30",
 			updatedBy: "品質管理課 山田",
 			type: "after",
@@ -96,7 +97,16 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			headerName: "品目・品種名",
 			width: 240,
 			renderCell: (params) => (
-				<Box sx={{ ...getCellSchema(params.row.gridRowId, "fruitName"), width: "100%", height: "100%", display: "flex", alignItems: "center", px: 1 }}>
+				<Box
+					sx={{
+						...getCellSchema(params.row.gridRowId, "fruitName"),
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						px: 1,
+					}}
+				>
 					{params.value}
 				</Box>
 			),
@@ -106,7 +116,16 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			headerName: "担当者",
 			width: 140,
 			renderCell: (params) => (
-				<Box sx={{ ...getCellSchema(params.row.gridRowId, "updatedBy"), width: "100%", height: "100%", display: "flex", alignItems: "center", px: 1 }}>
+				<Box
+					sx={{
+						...getCellSchema(params.row.gridRowId, "updatedBy"),
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						px: 1,
+					}}
+				>
 					{params.value}
 				</Box>
 			),
@@ -116,7 +135,16 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			headerName: "管理カテゴリ",
 			width: 140,
 			renderCell: (params) => (
-				<Box sx={{ ...getCellSchema(params.row.gridRowId, "category"), width: "100%", height: "100%", display: "flex", alignItems: "center", px: 1 }}>
+				<Box
+					sx={{
+						...getCellSchema(params.row.gridRowId, "category"),
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						px: 1,
+					}}
+				>
 					{params.value}
 				</Box>
 			),
@@ -126,7 +154,18 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			headerName: "想定単価 (円)",
 			width: 120,
 			renderCell: (params) => (
-				<Box sx={{ ...getCellSchema(params.row.gridRowId, "price"), width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "flex-end", px: 1, fontVariantNumeric: "tabular-nums" }}>
+				<Box
+					sx={{
+						...getCellSchema(params.row.gridRowId, "price"),
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "flex-end",
+						px: 1,
+						fontVariantNumeric: "tabular-nums",
+					}}
+				>
 					{Number(params.value).toLocaleString()}
 				</Box>
 			),
@@ -137,7 +176,18 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			flex: 1,
 			minWidth: 250,
 			renderCell: (params) => (
-				<Box sx={{ ...getCellSchema(params.row.gridRowId, "purpose"), width: "100%", height: "100%", display: "flex", alignItems: "center", px: 1, whiteSpace: "normal", lineHeight: "1.2" }}>
+				<Box
+					sx={{
+						...getCellSchema(params.row.gridRowId, "purpose"),
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						px: 1,
+						whiteSpace: "normal",
+						lineHeight: "1.2",
+					}}
+				>
 					{params.value}
 				</Box>
 			),
@@ -151,21 +201,13 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			headerName: "申請基本情報",
 			description: "申請に関する基本的なマスタ情報です",
 			headerAlign: "center", // 親ヘッダーの文字を中央揃えに
-			children: [
-				{ field: "id" }, 
-				{ field: "fruitName" }, 
-				{ field: "updatedBy" }
-			], // グループに入れたい子カラムのfield名を指定
+			children: [{ field: "id" }, { field: "fruitName" }, { field: "updatedBy" }], // グループに入れたい子カラムのfield名を指定
 		},
 		{
 			groupId: "change_details",
 			headerName: "変更内容・メタ情報",
 			headerAlign: "center",
-			children: [
-				{ field: "category" }, 
-				{ field: "price" }, 
-				{ field: "purpose" }
-			],
+			children: [{ field: "category" }, { field: "price" }, { field: "purpose" }],
 		},
 	];
 
@@ -174,7 +216,12 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 4 }}>
 				<Box>
 					{onBack && (
-						<Button startIcon={<ArrowBackIcon />} onClick={onBack} sx={{ mb: 1, textTransform: "none" }} variant="text">
+						<Button
+							startIcon={<ArrowBackIcon />}
+							onClick={onBack}
+							sx={{ mb: 1, textTransform: "none" }}
+							variant="text"
+						>
 							戻る
 						</Button>
 					)}
@@ -185,10 +232,23 @@ export const VersionDiffDemoPage: React.FC<VersionDiffDemoPageProps> = ({ onBack
 						MUI標準の構造化ヘッダーを適用し、関連する複数のカラムを「親ヘッダー」で束ねています。
 					</Typography>
 				</Box>
-				<Chip icon={<CompareIcon />} label="構造化ヘッダーモード" color="success" variant="outlined" />
+				<Chip
+					icon={<CompareIcon />}
+					label="構造化ヘッダーモード"
+					color="success"
+					variant="outlined"
+				/>
 			</Stack>
 
-			<Box sx={{ height: 350, width: "100%", bgcolor: "background.paper", borderRadius: 1, boxShadow: 1 }}>
+			<Box
+				sx={{
+					height: 350,
+					width: "100%",
+					bgcolor: "background.paper",
+					borderRadius: 1,
+					boxShadow: 1,
+				}}
+			>
 				<DataGrid
 					rows={rows}
 					columns={columns}

@@ -1,19 +1,19 @@
-import type React from "react";
-import { useState } from "react";
 import {
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-	Button,
-	TextField,
-	Stack,
 	Box,
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	Stack,
+	TextField,
 } from "@mui/material";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { ja } from "date-fns/locale/ja";
+import type React from "react";
+import { useState } from "react";
 
 // モーダルが受け取るプロップスの厳格な型定義
 interface ApplicationModalProps {
@@ -42,7 +42,8 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
 	const [purpose, setPurpose] = useState<string>("");
 
 	// バリデーション：必須項目が入力されているかチェック
-	const isFormValid = name.trim() !== "" && startDate !== null && endDate !== null && purpose.trim() !== "";
+	const isFormValid =
+		name.trim() !== "" && startDate !== null && endDate !== null && purpose.trim() !== "";
 
 	// フォームリセット処理
 	const handleReset = () => {
@@ -76,13 +77,12 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
 	return (
 		<Dialog open={isOpen} onClose={handleCancel} maxWidth="sm" fullWidth>
 			<DialogTitle sx={{ fontWeight: 700, pb: 1 }}>新規申請登録</DialogTitle>
-			
+
 			{/* HTMLのネイティブなフォーム機能を利用してアクセシビリティを確保 */}
 			<Box component="form" onSubmit={handleSubmit}>
 				<DialogContent dividers>
 					{/* MUI v9 仕様: レイアウトプロパティはすべてsx内に集約 */}
 					<Stack spacing={3} sx={{ pt: 1 }}>
-						
 						{/* 対象名称入力 */}
 						<TextField
 							label="対象品目 / 申請名称"
@@ -139,7 +139,11 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
 				</DialogContent>
 
 				<DialogActions sx={{ p: 2.5 }}>
-					<Button onClick={handleCancel} color="inherit" sx={{ textTransform: "none", fontWeight: 600 }}>
+					<Button
+						onClick={handleCancel}
+						color="inherit"
+						sx={{ textTransform: "none", fontWeight: 600 }}
+					>
 						キャンセル
 					</Button>
 					<Button

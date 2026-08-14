@@ -1,10 +1,14 @@
+import {
+	Add as AddIcon,
+	ArrowBack as ArrowBackIcon,
+	Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import { Box, Button, Chip, Container, Stack, Typography } from "@mui/material";
+import type { GridColDef, GridColumnGroupingModel } from "@mui/x-data-grid";
 import type React from "react";
 import { useState } from "react";
-import { Box, Button, Container, Typography, Stack, Chip } from "@mui/material";
-import { ArrowBack as ArrowBackIcon, Add as AddIcon, Refresh as RefreshIcon } from "@mui/icons-material";
-import type { GridColDef, GridColumnGroupingModel } from "@mui/x-data-grid";
-import { GenericDataGrid } from "../features/datagrid/components/GenericDataGrid";
 import { ApplicationModal } from "../features/application/components/ApplicationModal";
+import { GenericDataGrid } from "../features/datagrid/components/GenericDataGrid";
 
 interface FruitRecord {
 	id: string;
@@ -24,9 +28,30 @@ export const SystemAPage: React.FC<SystemAPageProps> = ({ onBack }) => {
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 
 	const fruits: FruitRecord[] = [
-		{ id: "FRUIT-001", fruitName: "完熟マンゴー (宮崎県産)", origin: "宮崎県 JA宮崎", arrivalDate: "2026-06-25", inspectionStatus: "passed", shippingLimit: "2026-07-05" },
-		{ id: "FRUIT-002", fruitName: "シャインマスカット", origin: "山梨県 勝沼農協", arrivalDate: "2026-06-26", inspectionStatus: "pending", shippingLimit: "2026-07-12" },
-		{ id: "FRUIT-003", fruitName: "佐藤錦 (さくらんぼ)", origin: "山形県 東根市", arrivalDate: "2026-06-23", inspectionStatus: "failed", shippingLimit: "2026-06-28" },
+		{
+			id: "FRUIT-001",
+			fruitName: "完熟マンゴー (宮崎県産)",
+			origin: "宮崎県 JA宮崎",
+			arrivalDate: "2026-06-25",
+			inspectionStatus: "passed",
+			shippingLimit: "2026-07-05",
+		},
+		{
+			id: "FRUIT-002",
+			fruitName: "シャインマスカット",
+			origin: "山梨県 勝沼農協",
+			arrivalDate: "2026-06-26",
+			inspectionStatus: "pending",
+			shippingLimit: "2026-07-12",
+		},
+		{
+			id: "FRUIT-003",
+			fruitName: "佐藤錦 (さくらんぼ)",
+			origin: "山形県 東根市",
+			arrivalDate: "2026-06-23",
+			inspectionStatus: "failed",
+			shippingLimit: "2026-06-28",
+		},
 	];
 
 	const columns: GridColDef<FruitRecord>[] = [
@@ -44,8 +69,13 @@ export const SystemAPage: React.FC<SystemAPageProps> = ({ onBack }) => {
 				let color: "success" | "warning" | "error" = "warning";
 				let label = "保留";
 
-				if (status === "passed") { color = "success"; label = "合格 (出荷可)"; }
-				else if (status === "failed") { color = "error"; label = "不合格 (制限)"; }
+				if (status === "passed") {
+					color = "success";
+					label = "合格 (出荷可)";
+				} else if (status === "failed") {
+					color = "error";
+					label = "不合格 (制限)";
+				}
 
 				return <Chip label={label} color={color} size="small" />;
 			},
@@ -64,7 +94,11 @@ export const SystemAPage: React.FC<SystemAPageProps> = ({ onBack }) => {
 			groupId: "inspection_info",
 			headerName: "入荷・検査ステータス",
 			headerAlign: "center",
-			children: [{ field: "arrivalDate" }, { field: "shippingLimit" }, { field: "inspectionStatus" }],
+			children: [
+				{ field: "arrivalDate" },
+				{ field: "shippingLimit" },
+				{ field: "inspectionStatus" },
+			],
 		},
 	];
 
@@ -72,7 +106,12 @@ export const SystemAPage: React.FC<SystemAPageProps> = ({ onBack }) => {
 		<Container maxWidth="xl" sx={{ py: 4 }}>
 			<Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 4 }}>
 				<Box>
-					<Button startIcon={<ArrowBackIcon />} onClick={onBack} sx={{ mb: 1, textTransform: "none" }} variant="text">
+					<Button
+						startIcon={<ArrowBackIcon />}
+						onClick={onBack}
+						sx={{ mb: 1, textTransform: "none" }}
+						variant="text"
+					>
 						ポータルへ戻る
 					</Button>
 					<Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
@@ -81,20 +120,50 @@ export const SystemAPage: React.FC<SystemAPageProps> = ({ onBack }) => {
 				</Box>
 
 				<Stack direction="row" spacing={2}>
-					<Button variant="outlined" color="primary" startIcon={<RefreshIcon />} onClick={() => setIsLoading(true)} disabled={isLoading} sx={{ textTransform: "none" }}>
+					<Button
+						variant="outlined"
+						color="primary"
+						startIcon={<RefreshIcon />}
+						onClick={() => setIsLoading(true)}
+						disabled={isLoading}
+						sx={{ textTransform: "none" }}
+					>
 						最新の情報に更新
 					</Button>
-					<Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setIsModalOpen(true)} sx={{ textTransform: "none", fontWeight: 600 }}>
+					<Button
+						variant="contained"
+						color="primary"
+						startIcon={<AddIcon />}
+						onClick={() => setIsModalOpen(true)}
+						sx={{ textTransform: "none", fontWeight: 600 }}
+					>
 						新規品質検査申請
 					</Button>
 				</Stack>
 			</Stack>
 
-			<Box sx={{ height: 600, width: "100%", bgcolor: "background.paper", borderRadius: 1, boxShadow: 1 }}>
-				<GenericDataGrid rows={fruits} columns={columns} columnGroupingModel={fruitColumnGroupingModel} loading={isLoading} />
+			<Box
+				sx={{
+					height: 600,
+					width: "100%",
+					bgcolor: "background.paper",
+					borderRadius: 1,
+					boxShadow: 1,
+				}}
+			>
+				<GenericDataGrid
+					rows={fruits}
+					columns={columns}
+					columnGroupingModel={fruitColumnGroupingModel}
+					loading={isLoading}
+				/>
 			</Box>
 
-			<ApplicationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={(data) => console.log(data)} />
+			<ApplicationModal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				onSubmit={(data) => console.log(data)}
+			/>
 		</Container>
 	);
 };

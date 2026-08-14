@@ -1,12 +1,12 @@
-import type React from "react";
-import { Box, Button, Stack } from "@mui/material";
 import { Download as DownloadIcon } from "@mui/icons-material";
+import { Box, Button, Stack } from "@mui/material";
 import {
 	DataGrid,
 	type GridColDef,
-	type GridValidRowModel,
 	type GridColumnGroupingModel,
+	type GridValidRowModel,
 } from "@mui/x-data-grid";
+import type React from "react";
 
 interface GenericDataGridProps<TRows extends GridValidRowModel> {
 	rows: TRows[];
@@ -38,7 +38,8 @@ const handleCsvDownload = <TRows extends GridValidRowModel>(
 		exportableCols
 			.map((col) => {
 				const val = row[col.field as keyof TRows];
-				const formattedVal = val !== undefined && val !== null ? String(val).replace(/"/g, '""') : "";
+				const formattedVal =
+					val !== undefined && val !== null ? String(val).replace(/"/g, '""') : "";
 				return `"${formattedVal}"`;
 			})
 			.join(","),
@@ -46,7 +47,7 @@ const handleCsvDownload = <TRows extends GridValidRowModel>(
 
 	// 4. BOM (\uFEFF) を付与して Blob を生成（Excelの日本語文字化け防止）
 	const csvString = [headerLine, ...bodyLines].join("\n");
-	const blob = new Blob(["\uFEFF" + csvString], { type: "text/csv;charset=utf-8;" });
+	const blob = new Blob([`\uFEFF${csvString}`], { type: "text/csv;charset=utf-8;" });
 
 	// 5. ブラウザでダウンロードを実行
 	const url = URL.createObjectURL(blob);
